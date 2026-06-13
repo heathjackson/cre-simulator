@@ -623,7 +623,8 @@
       isListening: false,
       micLocked: false,
       selectedDifficulty: 'warm',
-      stopTimeout: null
+      stopTimeout: null,
+      voice: null
     };
 
     // SCREEN HELPERS
@@ -663,6 +664,7 @@
         state.prospectName = data.prospectName;
         state.prospectTitle = data.prospectTitle;
         state.messages = [];
+        state.voice = pickVoice(data.prospectName);
 
         // Set up call screen
         document.getElementById('prospectName').textContent = data.prospectName;
@@ -804,6 +806,54 @@
       }
     }
 
+    // VOICE SELECTION
+    const FEMALE_NAMES = new Set([
+      'Sandra','Priya','Linda','Karen','Maria','Tanya','Ashley','Brittany',
+      'Paula','Diane','Angela','Suzanne','Rosa','Connie','Janet','Tamara',
+      'Michelle','Nina','Nadia','Jen'
+    ]);
+
+    const NOVELTY_VOICES = [
+      'Agnes','Bahh','Bells','Boing','Bubbles','Cellos','Deranged','Fred',
+      'Good News','Bad News','Hysterical','Junior','Kathy','Organ','Princess',
+      'Ralph','Trinoids','Whisper','Zarvox','Wobble','Eddy','Flo','Grandma',
+      'Grandpa','Reed','Rocko','Sandy','Shelley'
+    ];
+
+    const FEMALE_VOICES = ['Samantha','Allison','Ava','Victoria','Susan','Kate',
+      'Moira','Fiona','Tessa','Karen','Veena','Nicky','Google US English'];
+    const MALE_VOICES  = ['Alex','Tom','Daniel','Aaron','Bruce','Gordon','Oliver'];
+
+    function pickVoice(prospectName) {
+      const voices = window.speechSynthesis.getVoices();
+      const clean = voices.filter(v =>
+        v.lang.startsWith('en') &&
+        !NOVELTY_VOICES.some(n => v.name.includes(n))
+      );
+
+      const firstName = prospectName.replace('Dr.','').trim().split(' ')[0];
+      const isFemale = FEMALE_NAMES.has(firstName);
+      const preferred = isFemale ? FEMALE_VOICES : MALE_VOICES;
+
+      // 1. Exact preferred name match
+      for (const name of preferred) {
+        const match = clean.find(v => v.name.includes(name));
+        if (match) return match;
+      }
+
+      // 2. Premium / enhanced / neural quality label
+      const quality = clean.find(v =>
+        /premium|enhanced|neural|natural/i.test(v.name) && v.lang === 'en-US'
+      );
+      if (quality) return quality;
+
+      // 3. Any en-US voice
+      const enUS = clean.find(v => v.lang === 'en-US');
+      if (enUS) return enUS;
+
+      return clean[0] || voices[0];
+    }
+
     // SPEECH SYNTHESIS
     function speakText(text) {
       if (!window.speechSynthesis) return;
@@ -813,15 +863,9 @@
       setStatus('Prospect speaking…', 'speaking');
 
       const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 0.95;
+      utter.rate = 0.92;
       utter.pitch = 1.0;
-
-      // Pick a consistent voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(v => v.lang === 'en-US' && v.name.includes('Google'))
-        || voices.find(v => v.lang === 'en-US')
-        || voices[0];
-      if (preferred) utter.voice = preferred;
+      if (state.voice) utter.voice = state.voice;
 
       utter.onend = () => {
         state.isSpeaking = false;
