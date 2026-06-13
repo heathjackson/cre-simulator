@@ -324,6 +324,20 @@
 
     .end-btn:hover { background: var(--accent-danger); color: white; }
 
+    .cancel-btn {
+      padding: 10px 22px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .cancel-btn:hover { border-color: var(--text-muted); color: var(--text); }
+
     .status-bar {
       text-align: center;
       font-size: 13px;
@@ -585,7 +599,7 @@
         </button>
         <div class="mic-hint">Hold to speak</div>
       </div>
-      <div style="width:88px"></div>
+      <button class="cancel-btn" onclick="cancelCall()">Cancel</button>
     </div>
   </div>
 
@@ -964,6 +978,13 @@
         const bar = document.getElementById('scoreBar');
         if (bar) bar.style.width = scoreWidth;
       }, 100);
+    }
+
+    function cancelCall() {
+      clearInterval(state.timerInterval);
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      if (state.recognition) state.recognition.stop();
+      resetToSetup();
     }
 
     function resetToSetup() {
