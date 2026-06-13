@@ -193,9 +193,10 @@ app.post('/debrief', async (req, res) => {
     .map(m => `${m.role === 'user' ? 'REP' : 'PROSPECT'}: ${m.content}`)
     .join('\n');
 
-  const debriefPrompt = `You are a senior commercial real estate sales coach reviewing a practice call.
+  const debriefPrompt = `You are a senior commercial real estate sales coach reviewing a practice call with ${config.repName || 'the rep'}.
 
 CALL CONFIGURATION:
+- Rep: ${config.repName || 'the rep'}
 - Prospect type: ${config.prospectType}
 - Difficulty: ${config.difficulty}
 - Rep's role: ${config.role}
@@ -209,10 +210,10 @@ ${transcript}
 
 Use the coaching philosophy above as background context to inform your feedback — not as a checklist. The goal is to give the rep useful, encouraging coaching that helps them improve over time. Focus on the spirit of good sales conversations: curiosity, listening, uncovering what the owner actually cares about, and building trust. If objections came up, offer a practical suggestion on how they might have approached it — but frame it as a tip, not a correction.
 
-Provide a coaching debrief in this exact JSON format:
+Provide a coaching debrief in this exact JSON format. Address ${config.repName || 'the rep'} by name in the overallSummary and technique fields:
 {
   "overallScore": <number 1-10>,
-  "overallSummary": "<2-3 sentence overall assessment — be specific to what happened in this call>",
+  "overallSummary": "<2-3 sentence overall assessment addressing ${config.repName || 'the rep'} by name — be specific to what happened in this call>",
   "strengths": ["<specific strength with example from the call>", "<specific strength with example from the call>"],
   "improvements": ["<practical, encouraging suggestion with a moment from the call>", "<practical, encouraging suggestion with a moment from the call>"],
   "technique": "<one concrete tip they can try on their next call — give the actual words or approach they could use>",
