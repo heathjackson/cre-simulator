@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRE Call Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #4f6ef7;
+      --accent-hover: #3d5ce0;
+      --accent-danger: #e84560;
+      --accent-success: #2dce89;
+      --text: #e8eaf6;
+      --text-muted: #8b8fa8;
+      --text-dim: #555b7a;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem;
+    }
+
+    .app-header {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .app-header .logo {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .app-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .app-header span {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    /* SCREEN SYSTEM */
+    .screen { display: none; width: 100%; max-width: 680px; }
+    .screen.active { display: block; }
+
+    /* SETUP SCREEN */
+    .setup-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    .setup-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .setup-card .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .form-group select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 12px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b8fa8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Difficulty cards */
+    .difficulty-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .diff-card {
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .diff-card:hover { border-color: var(--accent); }
+    .diff-card.selected { border-color: var(--accent); background: rgba(79,110,247,0.12); }
+
+    .diff-card .diff-icon { font-size: 18px; margin-bottom: 4px; }
+    .diff-card .diff-label { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .diff-card.selected .diff-label { color: var(--accent); }
+
+    .start-btn {
+      width: 100%;
+      margin-top: 1.75rem;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .start-btn:hover { background: var(--accent-hover); }
+    .start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* CALL SCREEN */
+    .call-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .prospect-info { display: flex; align-items: center; gap: 14px; }
+
+    .prospect-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .prospect-name { font-size: 16px; font-weight: 600; }
+    .prospect-title { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .call-timer {
+      font-size: 22px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+    }
+
+    .transcript-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      height: 340px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    .transcript-area:empty::before {
+      content: 'Call connected. Hold the mic button to speak.';
+      color: var(--text-dim);
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    .msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-width: 85%;
+    }
+
+    .msg.rep { align-self: flex-end; align-items: flex-end; }
+    .msg.prospect { align-self: flex-start; align-items: flex-start; }
+
+    .msg-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-dim);
+    }
+
+    .msg-bubble {
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .msg.rep .msg-bubble {
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.prospect .msg-bubble {
+      background: var(--surface2);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.thinking .msg-bubble {
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .call-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 1rem;
+    }
+
+    .mic-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 3px solid var(--border);
+      color: var(--text-muted);
+      font-size: 30px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .mic-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .mic-btn.recording { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 0 0 8px rgba(79,110,247,0.18); }
+    .mic-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .mic-hint {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: -4px;
+    }
+
+    .end-btn {
+      padding: 10px 22px;
+      background: transparent;
+      color: var(--accent-danger);
+      border: 2px solid var(--accent-danger);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .end-btn:hover { background: var(--accent-danger); color: white; }
+
+    .status-bar {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      min-height: 20px;
+      margin-bottom: 4px;
+    }
+
+    .status-bar.listening { color: var(--accent); }
+    .status-bar.speaking { color: var(--accent-success); }
+
+    /* DEBRIEF SCREEN */
+    .debrief-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    .debrief-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.75rem;
+    }
+
+    .debrief-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .grade-badge {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .grade-A { background: rgba(45,206,137,0.15); color: var(--accent-success); border: 2px solid var(--accent-success); }
+    .grade-B { background: rgba(79,110,247,0.15); color: var(--accent); border: 2px solid var(--accent); }
+    .grade-C { background: rgba(255,180,0,0.15); color: #ffb400; border: 2px solid #ffb400; }
+    .grade-D { background: rgba(232,69,96,0.15); color: var(--accent-danger); border: 2px solid var(--accent-danger); }
+    .grade-F { background: rgba(232,69,96,0.2); color: var(--accent-danger); border: 2px solid var(--accent-danger); }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+
+    .score-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--accent);
+      transition: width 0.8s ease;
+    }
+
+    .score-label { font-size: 13px; color: var(--text-muted); min-width: 60px; }
+    .score-value { font-size: 14px; font-weight: 700; min-width: 36px; text-align: right; }
+
+    .summary-text {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      padding: 14px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+    }
+
+    .debrief-section { margin-bottom: 1.5rem; }
+
+    .debrief-section h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .debrief-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .debrief-item.strength { background: rgba(45,206,137,0.08); border: 1px solid rgba(45,206,137,0.2); }
+    .debrief-item.improve { background: rgba(255,180,0,0.08); border: 1px solid rgba(255,180,0,0.2); }
+    .debrief-item.technique { background: rgba(79,110,247,0.08); border: 1px solid rgba(79,110,247,0.2); }
+
+    .debrief-item .icon { flex-shrink: 0; margin-top: 1px; }
+
+    .new-call-btn {
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .new-call-btn:hover { background: var(--accent-hover); }
+
+    .loading-debrief {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .mic-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-header">
+    <div class="logo">📞</div>
+    <div>
+      <h1>CRE Call Simulator</h1>
+      <span>Practice · Improve · Close</span>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-card">
+      <h2>Configure Your Call</h2>
+      <p class="subtitle">Select your scenario, then start the practice call.</p>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Prospect Type</label>
+          <select id="prospectType">
+            <option value="retail">Retail Owner</option>
+            <option value="auto">Auto Owner (Gas, Car Wash, Lube)</option>
+            <option value="qsr">QSR Owner (Quick Service Restaurant)</option>
+            <option value="early-childhood">Early Childhood Owner (Daycare / Preschool)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Your Role</label>
+          <select id="role">
+            <option value="follow-up">Follow-Up Call</option>
+            <option value="property-verify">Property Verification</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Market</label>
+          <select id="market">
+            <option value="Atlanta">Atlanta</option>
+            <option value="Dallas">Dallas</option>
+            <option value="New York">New York</option>
+            <option value="Los Angeles">Los Angeles</option>
+            <option value="Chicago">Chicago</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Difficulty</label>
+          <div class="difficulty-cards">
+            <div class="diff-card selected" data-value="warm" onclick="selectDifficulty(this)">
+              <div class="diff-icon">🌤</div>
+              <div class="diff-label">Warm</div>
+            </div>
+            <div class="diff-card" data-value="cold" onclick="selectDifficulty(this)">
+              <div class="diff-icon">🧊</div>
+              <div class="diff-label">Cold</div>
+            </div>
+            <div class="diff-card" data-value="objection" onclick="selectDifficulty(this)">
+              <div class="diff-icon">🛡</div>
+              <div class="diff-label">Objections</div>
+            </div>
+            <div class="diff-card" data-value="motivated" onclick="selectDifficulty(this)">
+              <div class="diff-icon">🔥</div>
+              <div class="diff-label">Motivated</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="start-btn" id="startBtn" onclick="startCall()">Start Call</button>
+    </div>
+  </div>
+
+  <!-- CALL SCREEN -->
+  <div id="screen-call" class="screen">
+    <div class="call-header">
+      <div class="prospect-info">
+        <div class="prospect-avatar" id="prospectAvatar">?</div>
+        <div>
+          <div class="prospect-name" id="prospectName">—</div>
+          <div class="prospect-title" id="prospectTitle">—</div>
+        </div>
+      </div>
+      <div class="call-timer" id="callTimer">0:00</div>
+    </div>
+
+    <div class="transcript-area" id="transcript"></div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="call-controls">
+      <button class="end-btn" onclick="endCall()">End Call</button>
+      <div class="mic-wrap">
+        <button class="mic-btn" id="micBtn"
+          onmousedown="startListening()" onmouseup="stopListening()"
+          ontouchstart="startListening(event)" ontouchend="stopListening()">
+          🎤
+        </button>
+        <div class="mic-hint">Hold to speak</div>
+      </div>
+      <div style="width:88px"></div>
+    </div>
+  </div>
+
+  <!-- DEBRIEF SCREEN -->
+  <div id="screen-debrief" class="screen">
+    <div class="debrief-card" id="debriefContent">
+      <div class="loading-debrief">
+        <div class="spinner"></div>
+        <p>Generating your coaching debrief…</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // STATE
+    let state = {
+      systemPrompt: '',
+      messages: [],
+      config: {},
+      prospectName: '',
+      prospectTitle: '',
+      timerInterval: null,
+      callSeconds: 0,
+      recognition: null,
+      isSpeaking: false,
+      isListening: false,
+      micLocked: false,
+      selectedDifficulty: 'warm',
+      stopTimeout: null
+    };
+
+    // SCREEN HELPERS
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + id).classList.add('active');
+    }
+
+    function selectDifficulty(el) {
+      document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedDifficulty = el.dataset.value;
+    }
+
+    // START CALL
+    async function startCall() {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      btn.textContent = 'Connecting…';
+
+      state.config = {
+        prospectType: document.getElementById('prospectType').value,
+        difficulty: state.selectedDifficulty,
+        role: document.getElementById('role').value,
+        market: document.getElementById('market').value
+      };
+
+      try {
+        const res = await fetch('/start-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state.config)
+        });
+        const data = await res.json();
+        state.systemPrompt = data.systemPrompt;
+        state.prospectName = data.prospectName;
+        state.prospectTitle = data.prospectTitle;
+        state.messages = [];
+
+        // Set up call screen
+        document.getElementById('prospectName').textContent = data.prospectName;
+        document.getElementById('prospectTitle').textContent = data.prospectTitle + ' — ' + state.config.market;
+        document.getElementById('prospectAvatar').textContent = data.prospectName.charAt(0);
+        document.getElementById('transcript').innerHTML = '';
+        document.getElementById('callTimer').textContent = '0:00';
+        setStatus('');
+
+        showScreen('call');
+        startTimer();
+
+        // Prospect picks up the phone with a brief opener
+        await getProspectResponse('[The rep has just dialed. You picked up the phone.]');
+
+      } catch (err) {
+        alert('Failed to start call: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Start Call';
+      }
+    }
+
+    // TIMER
+    function startTimer() {
+      state.callSeconds = 0;
+      clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        state.callSeconds++;
+        const m = Math.floor(state.callSeconds / 60);
+        const s = String(state.callSeconds % 60).padStart(2, '0');
+        document.getElementById('callTimer').textContent = m + ':' + s;
+      }, 1000);
+    }
+
+    // SPEECH RECOGNITION
+    function startListening(e) {
+      if (e) e.preventDefault();
+
+      // Allow broker to interrupt prospect mid-speech
+      if (state.isSpeaking) {
+        window.speechSynthesis.cancel();
+        state.isSpeaking = false;
+        state.micLocked = false;
+      }
+
+      if (state.micLocked || state.isListening) return;
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('Speech recognition is not supported. Please use Chrome.');
+        return;
+      }
+
+      state.isListening = true;
+      const micBtn = document.getElementById('micBtn');
+      micBtn.classList.add('recording');
+      setStatus('Listening…', 'listening');
+
+      let accumulatedText = '';
+
+      state.recognition = new SpeechRecognition();
+      state.recognition.lang = 'en-US';
+      state.recognition.interimResults = false;
+      state.recognition.maxAlternatives = 1;
+      state.recognition.continuous = true;
+
+      state.recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            const chunk = event.results[i][0].transcript.trim();
+            if (chunk) accumulatedText += (accumulatedText ? ' ' : '') + chunk;
+          }
+        }
+      };
+
+      state.recognition.onerror = (event) => {
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          setStatus('Mic error: ' + event.error);
+        }
+        resetMicUI();
+      };
+
+      state.recognition.onend = () => {
+        resetMicUI();
+        if (accumulatedText) {
+          addMessage('rep', accumulatedText);
+          state.messages.push({ role: 'user', content: accumulatedText });
+          getProspectResponse();
+        }
+      };
+
+      state.recognition.start();
+    }
+
+    function stopListening() {
+      if (state.stopTimeout) clearTimeout(state.stopTimeout);
+      state.stopTimeout = setTimeout(() => {
+        if (state.recognition) state.recognition.stop();
+      }, 700);
+    }
+
+    function resetMicUI() {
+      state.isListening = false;
+      const micBtn = document.getElementById('micBtn');
+      micBtn.classList.remove('recording');
+      if (!state.isSpeaking) setStatus('');
+    }
+
+    // PROSPECT RESPONSE
+    async function getProspectResponse(injectedUserMsg) {
+      state.micLocked = true;
+      setMicDisabled(true);
+      setStatus('Prospect is thinking…');
+      addThinkingBubble();
+
+      const messagesPayload = injectedUserMsg
+        ? [...state.messages, { role: 'user', content: injectedUserMsg }]
+        : state.messages;
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: messagesPayload, systemPrompt: state.systemPrompt })
+        });
+        const data = await res.json();
+        removeThinkingBubble();
+
+        if (data.reply) {
+          state.messages.push({ role: 'assistant', content: data.reply });
+          addMessage('prospect', data.reply);
+          speakText(data.reply);
+        }
+      } catch (err) {
+        removeThinkingBubble();
+        setStatus('Connection error. Try again.');
+        state.micLocked = false;
+        setMicDisabled(false);
+      }
+    }
+
+    // SPEECH SYNTHESIS
+    function speakText(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+
+      state.isSpeaking = true;
+      setStatus('Prospect speaking…', 'speaking');
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 0.95;
+      utter.pitch = 1.0;
+
+      // Pick a consistent voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang === 'en-US' && v.name.includes('Google'))
+        || voices.find(v => v.lang === 'en-US')
+        || voices[0];
+      if (preferred) utter.voice = preferred;
+
+      utter.onend = () => {
+        state.isSpeaking = false;
+        state.micLocked = false;
+        setMicDisabled(false);
+        setStatus('');
+      };
+
+      utter.onerror = () => {
+        state.isSpeaking = false;
+        state.micLocked = false;
+        setMicDisabled(false);
+        setStatus('');
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    // TRANSCRIPT UI
+    function addMessage(role, text) {
+      const area = document.getElementById('transcript');
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="msg-label">${role === 'rep' ? 'You' : state.prospectName}</div>
+                       <div class="msg-bubble">${escapeHtml(text)}</div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function addThinkingBubble() {
+      const area = document.getElementById('transcript');
+      const div = document.createElement('div');
+      div.className = 'msg prospect thinking';
+      div.id = 'thinking-bubble';
+      div.innerHTML = `<div class="msg-label">${state.prospectName}</div>
+                       <div class="msg-bubble">…</div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function removeThinkingBubble() {
+      const el = document.getElementById('thinking-bubble');
+      if (el) el.remove();
+    }
+
+    function setStatus(msg, type) {
+      const bar = document.getElementById('statusBar');
+      bar.textContent = msg;
+      bar.className = 'status-bar' + (type ? ' ' + type : '');
+    }
+
+    function setMicDisabled(disabled) {
+      const btn = document.getElementById('micBtn');
+      if (disabled) btn.classList.add('disabled');
+      else btn.classList.remove('disabled');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // END CALL → DEBRIEF
+    async function endCall() {
+      clearInterval(state.timerInterval);
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      if (state.recognition) state.recognition.stop();
+
+      if (state.messages.length < 2) {
+        if (!confirm('The call was very short. Still generate a debrief?')) {
+          resetToSetup();
+          return;
+        }
+      }
+
+      showScreen('debrief');
+      document.getElementById('debriefContent').innerHTML = `
+        <div class="loading-debrief">
+          <div class="spinner"></div>
+          <p>Generating your coaching debrief…</p>
+        </div>`;
+
+      try {
+        const res = await fetch('/debrief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: state.messages, config: state.config })
+        });
+        const debrief = await res.json();
+        renderDebrief(debrief);
+      } catch (err) {
+        document.getElementById('debriefContent').innerHTML = `
+          <div style="text-align:center;padding:3rem;color:var(--accent-danger)">
+            <p>Failed to generate debrief. <button class="new-call-btn" style="width:auto;padding:10px 24px;margin-top:1rem" onclick="resetToSetup()">Try New Call</button></p>
+          </div>`;
+      }
+    }
+
+    function renderDebrief(d) {
+      const gradeClass = 'grade-' + (d.grade || 'B').charAt(0).toUpperCase();
+      const scoreWidth = ((d.overallScore || 5) / 10 * 100) + '%';
+
+      document.getElementById('debriefContent').innerHTML = `
+        <div class="debrief-header">
+          <h2>Call Debrief</h2>
+          <div class="grade-badge ${gradeClass}">${d.grade || '—'}</div>
+        </div>
+
+        <div class="score-row">
+          <span class="score-label">Performance</span>
+          <div class="score-bar-wrap">
+            <div class="score-bar-fill" id="scoreBar" style="width:0%"></div>
+          </div>
+          <span class="score-value">${d.overallScore || '—'}/10</span>
+        </div>
+
+        <div class="summary-text">${escapeHtml(d.overallSummary || '')}</div>
+
+        <div class="debrief-section">
+          <h3>Strengths</h3>
+          ${(d.strengths || []).map(s => `
+            <div class="debrief-item strength">
+              <span class="icon">✓</span>
+              <span>${escapeHtml(s)}</span>
+            </div>`).join('')}
+        </div>
+
+        <div class="debrief-section">
+          <h3>Areas to Improve</h3>
+          ${(d.improvements || []).map(i => `
+            <div class="debrief-item improve">
+              <span class="icon">△</span>
+              <span>${escapeHtml(i)}</span>
+            </div>`).join('')}
+        </div>
+
+        <div class="debrief-section">
+          <h3>Technique to Use Next Time</h3>
+          <div class="debrief-item technique">
+            <span class="icon">→</span>
+            <span>${escapeHtml(d.technique || '')}</span>
+          </div>
+        </div>
+
+        <button class="new-call-btn" onclick="resetToSetup()">Start New Call</button>
+      `;
+
+      // Animate score bar
+      setTimeout(() => {
+        const bar = document.getElementById('scoreBar');
+        if (bar) bar.style.width = scoreWidth;
+      }, 100);
+    }
+
+    function resetToSetup() {
+      if (state.stopTimeout) clearTimeout(state.stopTimeout);
+      state.messages = [];
+      state.systemPrompt = '';
+      state.micLocked = false;
+      state.isSpeaking = false;
+      state.isListening = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('startBtn').textContent = 'Start Call';
+      showScreen('setup');
+    }
+
+    // Load voices early (Chrome needs this)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *)",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"office-tenant\",\"difficulty\":\"warm\",\"role\":\"cold-call\",\"market\":\"Atlanta\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/chat -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:3000/debrief -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(pkill -f \"node server.js\")",
+      "Skill(run)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"private-investor\",\"difficulty\":\"cold\",\"role\":\"cold-call\",\"market\":\"Dallas\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/chat -H 'Content-Type: application/json' -d '{\"systemPrompt\":\"You are Linda Hargrove, Private Investor at a private investment portfolio based in Dallas. PERSONA CONTEXT: Owns several commercial properties, looking to acquire or 1031 exchange. Focused on cap rates, NOI, and market trends. CALL CONTEXT: The rep is calling you cold. YOUR DISPOSITION: You are skeptical and guarded.\",\"messages\":[{\"role\":\"user\",\"content\":\"[The rep has just dialed. You picked up the phone.]\"}]}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('grade raw:', repr\\(d.get\\('grade'\\)\\)\\); print\\('CSS class would be: grade-' + \\(d.get\\('grade','B'\\) or 'B'\\)[0].upper\\(\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"private-investor\",\"difficulty\":\"warm\",\"role\":\"property-verify\",\"market\":\"Atlanta\"}')",
+      "Bash(open *)",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"office-tenant\",\"difficulty\":\"warm\",\"role\":\"cold-call\",\"market\":\"Chicago\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"industrial-owner\",\"difficulty\":\"cold\",\"role\":\"cold-call\",\"market\":\"Dallas\"}')",
+      "Bash(curl -s -X POST http://localhost:3000/start-call -H 'Content-Type: application/json' -d '{\"prospectType\":\"medical-owner\",\"difficulty\":\"objection\",\"role\":\"cold-call\",\"market\":\"Phoenix\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['prospectName'], '-', d['prospectTitle']\\); print\\(d['systemPrompt'][:300]\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)"
+    ]
+  }
+}
