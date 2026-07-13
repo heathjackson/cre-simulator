@@ -40,6 +40,33 @@ const PROSPECT_PERSONAS = {
   }
 };
 
+const CHARLES_PLAYBOOK = `
+CHARLES'S OPENING, DISCOVERY & PHILOSOPHY (from his morning-meeting coaching notes):
+
+OPENING LINES & POSITIONING:
+- "I came across your property — I'd love to know your investment strategy / your plan for the portfolio." Used once you've identified the property.
+- Credibility points for the intro: Ackerman & Co. — roughly 2.2 million sq ft and ~$1 billion of real estate, license #28, in business since 1967, one of the oldest CRE firms in the Southeast.
+- "It's good to know what your property is worth — it's one of your largest assets."
+- If the business is expanding, mention a seller leaseback as an option.
+- Framing reminder: buyers often approach owners before the owner has even thought about selling — good context for why you're reaching out now, unprompted.
+
+DISCOVERY / QUALIFYING QUESTIONS:
+- "Tell me about the property — what drove you to it?"
+- "What attracted you to the property?" — when they mention a deal they've already done.
+- "How long have you owned the property?"
+- "Who do you think is going to make a transaction in the next year?" — used to identify people with loans maturing who might refinance or sell.
+- "Can I ask you one more question — how many properties do you own?"
+- "I work with investors in [specific market] —" be specific — framing line to use before asking questions.
+- On lease structure: "You bought it 6 years ago — is the lease 10 to 15 years?"
+
+CALL PHILOSOPHY & GOALS:
+- The goal of the call is to get a BOV. Before pitching it, you need to know their likely objections and understand what problem you're actually solving for them.
+- Ask a couple of questions before the meeting so it feels reciprocal — you learn their concerns, and they get comfortable with you.
+- Target: 2 BOVs a week.
+- "Get details on the first call — that's the most important thing."
+- Once a BOV goes out, that person is no longer just a "contact." CC yourself on both the BOV and the OM, and make sure the info matches across both.
+`;
+
 const OBJECTION_GUIDE = `
 OWNER OBJECTIONS AND TRAINED RESPONSES:
 
@@ -53,10 +80,10 @@ OWNER OBJECTIONS AND TRAINED RESPONSES:
    Correct response: Point out that when rates fall, more sellers enter the market too. Ask what rate they're waiting for, and whether they'd still sell if rates drop but cap rates don't.
 
 4. "I just refinanced."
-   Correct response: Note that many owners sell during the loan term. Ask whether the financing is a long-term hold strategy or a bridge. Dig into prepayment penalties and remaining loan term.
+   Correct response: Note that many owners sell during the loan term. Ask whether the financing is a long-term hold strategy or a bridge. Dig into prepayment penalties and remaining loan term. Charles's version: ask about the remaining loan term, whether the cash-out proceeds were tax-free, and what they're doing with the proceeds — is this part of a longer-term strategy?
 
 5. "I'm going to hold forever."
-   Correct response: Affirm the strategy, then ask about the long-term plan — family, exchange, or estate. Remind them that everyone exits eventually: sale, estate, partnership, or death.
+   Correct response: Affirm the strategy, then ask about the long-term plan — family, exchange, or estate. Remind them that everyone exits eventually: sale, estate, partnership, or death. Charles's version: ask what "forever" means to them and what the actual long-term plan is — point out that no one truly plans to hold something forever.
 
 6. "I don't want to pay capital gains taxes."
    Correct response: Turn it into a planning discussion. Offer to explore 1031 exchange, DST, Opportunity Zone, installment sale, or charitable trust.
@@ -83,7 +110,7 @@ OWNER OBJECTIONS AND TRAINED RESPONSES:
     Correct response: Explain confidentiality controls — NDAs, buyer pre-qualification, efficient scheduling to minimize disruption.
 
 14. "I don't want my tenants knowing."
-    Correct response: Explain confidential marketing — no identifying info until a buyer is vetted and qualified.
+    Correct response: Explain confidential marketing — no identifying info until a buyer is vetted and qualified. Charles's version: no sign out front — if the tenant sees one, they'll assume a buyer is already circling. A letter can go to the tenant noting the ownership change if/when needed.
 
 15. "I'm worried it won't close."
     Correct response: Explain buyer qualification process — proven capital, closing history, financing capability vetted before diligence.
@@ -102,6 +129,15 @@ OWNER OBJECTIONS AND TRAINED RESPONSES:
 
 20. "I'm waiting until my loan matures."
     Correct response: Ask how much time remains, then offer to show what buyers would pay today so they can compare to their future strategy.
+
+21. "I love my property" / "I want to pass it down to my kids." (Charles)
+    Correct response: Ask what the asset means to them personally, what their long-term plan is, and whether they'd want to know what it's worth. Also worth asking whether the kids actually want it.
+
+22. "How did you get my number?" (Charles)
+    Correct response: "Just imagine what I could do to sell your property." Or, more simply: "No, I'm just reaching out."
+
+23. "I need to talk to my accountant/attorney." (Charles)
+    Correct response: "Absolutely, that makes sense." Validate it, then keep the door open to follow up once they've talked to their advisor.
 
 HIGH-LEVEL CLOSING QUESTIONS (use after handling an objection):
 - Discovery Close: "What would have to happen for you to seriously consider selling?"
@@ -149,7 +185,7 @@ BEHAVIORAL RULES:
 - If the rep goes silent or says something off-topic, respond as a real person would: "Hello? You still there?" or "I'm not sure what you mean."
 - Do not volunteer information freely — make the rep earn it through good questions.
 - Sound like a busy professional, not a customer service rep.
-- Pick one or two objections for this call — chosen naturally based on your persona — and stick with them. Do not cycle through a list. Realistic objections include: not interested in selling, already have a broker, bad market timing, capital gains concerns, waiting on loan maturity, or not wanting disruption. React authentically to how the rep handles it — soften if they ask good questions, hold firm if they pitch too hard.`,
+- Pick one or two objections for this call — chosen naturally based on your persona — and stick with them. Do not cycle through a list. Realistic objections include: not interested in selling, already have a broker, bad market timing, capital gains concerns, waiting on loan maturity, not wanting disruption, not wanting your tenant to know you're selling, emotional attachment to the property (wanting to pass it down to your kids), suspicion about how the rep got your number, or wanting to talk to your accountant/attorney first. React authentically to how the rep handles it — soften if they ask good questions, hold firm if they pitch too hard.`,
     prospectName: name,
     prospectTitle: persona.title
   };
@@ -203,6 +239,7 @@ CALL CONFIGURATION:
 - Market: ${config.market}
 
 COACHING PHILOSOPHY (use as background context, not a scorecard):
+${CHARLES_PLAYBOOK}
 ${OBJECTION_GUIDE}
 
 CALL TRANSCRIPT:
