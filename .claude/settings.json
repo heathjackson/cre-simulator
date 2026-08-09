@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(~/.zshrc)",
+      "Read(~/.zshenv)",
+      "Read(~/.zprofile)",
+      "Read(~/.bashrc)",
+      "Read(~/.bash_profile)",
+      "Read(~/.profile)",
+      "Read(~/.aws/credentials)",
+      "Read(~/.config/anthropic/**)"
+    ]
+  },
+  "sandbox": {
+    "credentials": {
+      "files": [
+        { "path": "./.env", "mode": "deny" },
+        { "path": "~/.zshrc", "mode": "deny" },
+        { "path": "~/.zshenv", "mode": "deny" },
+        { "path": "~/.zprofile", "mode": "deny" },
+        { "path": "~/.bashrc", "mode": "deny" },
+        { "path": "~/.bash_profile", "mode": "deny" },
+        { "path": "~/.profile", "mode": "deny" },
+        { "path": "~/.aws/credentials", "mode": "deny" },
+        { "path": "~/.config/anthropic", "mode": "deny" }
+      ]
+    }
+  }
+}

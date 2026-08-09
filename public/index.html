@@ -784,25 +784,37 @@
         ? [...state.messages, { role: 'user', content: injectedUserMsg }]
         : state.messages;
 
+      // Tracks whether speakText took over the mic lock; if it never did, the
+      // finally block has to release it or the call wedges with a dead mic.
+      let speaking = false;
+
       try {
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: messagesPayload, systemPrompt: state.systemPrompt })
         });
-        const data = await res.json();
-        removeThinkingBubble();
 
-        if (data.reply) {
-          state.messages.push({ role: 'assistant', content: data.reply });
-          addMessage('prospect', data.reply);
-          speakText(data.reply);
+        // A failed request still returns valid JSON, so this never throws —
+        // check the status explicitly and show whatever the server reported.
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.reply) {
+          setStatus(data.error || 'The prospect could not respond. Try again.');
+          return;
         }
+
+        state.messages.push({ role: 'assistant', content: data.reply });
+        addMessage('prospect', data.reply);
+        speaking = speakText(data.reply);
       } catch (err) {
-        removeThinkingBubble();
         setStatus('Connection error. Try again.');
-        state.micLocked = false;
-        setMicDisabled(false);
+      } finally {
+        removeThinkingBubble();
+        if (!speaking) {
+          state.micLocked = false;
+          setMicDisabled(false);
+        }
       }
     }
 
@@ -855,8 +867,10 @@
     }
 
     // SPEECH SYNTHESIS
+    // Returns true if it took over the mic lock — the caller must not release
+    // the mic itself, since onend/onerror below will do it once speech is done.
     function speakText(text) {
-      if (!window.speechSynthesis) return;
+      if (!window.speechSynthesis) return false;
       window.speechSynthesis.cancel();
 
       state.isSpeaking = true;
@@ -882,6 +896,7 @@
       };
 
       window.speechSynthesis.speak(utter);
+      return true;
     }
 
     // TRANSCRIPT UI
@@ -953,14 +968,29 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: state.messages, config: state.config })
         });
-        const debrief = await res.json();
+
+        // Without this check an error payload renders as an empty debrief —
+        // blank grade, 0/10 — which looks like a real (terrible) score.
+        const debrief = await res.json().catch(() => ({}));
+
+        if (!res.ok || !debrief.grade) {
+          showDebriefError(debrief.error);
+          return;
+        }
+
         renderDebrief(debrief);
       } catch (err) {
-        document.getElementById('debriefContent').innerHTML = `
-          <div style="text-align:center;padding:3rem;color:var(--accent-danger)">
-            <p>Failed to generate debrief. <button class="new-call-btn" style="width:auto;padding:10px 24px;margin-top:1rem" onclick="resetToSetup()">Try New Call</button></p>
-          </div>`;
+        showDebriefError();
       }
+    }
+
+    function showDebriefError(detail) {
+      document.getElementById('debriefContent').innerHTML = `
+        <div style="text-align:center;padding:3rem;color:var(--accent-danger)">
+          <p>Failed to generate debrief.</p>
+          ${detail ? `<p style="margin-top:.75rem;font-size:.9rem;opacity:.85">${escapeHtml(detail)}</p>` : ''}
+          <button class="new-call-btn" style="width:auto;padding:10px 24px;margin-top:1rem" onclick="resetToSetup()">Try New Call</button>
+        </div>`;
     }
 
     function renderDebrief(d) {

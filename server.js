@@ -1,4 +1,8 @@
-require('dotenv').config();
+// override: true makes this project's .env authoritative. Without it, an
+// ANTHROPIC_API_KEY already exported in the shell silently wins and .env is
+// ignored — which is easy to miss, since the app fails with an auth error
+// that points at the key you're looking at rather than the one it's using.
+require('dotenv').config({ override: true });
 const express = require('express');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -200,6 +204,15 @@ app.post('/start-call', (req, res) => {
   res.json({ systemPrompt, prospectName, prospectTitle });
 });
 
+// Surface the API's own error text instead of a generic message — a failure
+// here is almost always something the operator can act on (billing, bad key,
+// rate limit), and that detail is useless if it only reaches the terminal.
+function sendApiError(res, error, fallback) {
+  const status = Number.isInteger(error?.status) ? error.status : 500;
+  const message = error?.error?.error?.message || error?.message || fallback;
+  res.status(status).json({ error: message });
+}
+
 app.post('/chat', async (req, res) => {
   const { messages, systemPrompt } = req.body;
   if (!messages || !systemPrompt) {
@@ -215,7 +228,7 @@ app.post('/chat', async (req, res) => {
     res.json({ reply: response.content[0].text });
   } catch (error) {
     console.error('Chat API error:', error);
-    res.status(500).json({ error: 'API call failed' });
+    sendApiError(res, error, 'API call failed');
   }
 });
 
@@ -273,7 +286,7 @@ Be specific to what was actually said. Do not be generic.`;
     res.json(debrief);
   } catch (error) {
     console.error('Debrief API error:', error);
-    res.status(500).json({ error: 'Debrief generation failed' });
+    sendApiError(res, error, 'Debrief generation failed');
   }
 });
 
