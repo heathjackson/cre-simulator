@@ -829,12 +829,16 @@
       'Agnes','Bahh','Bells','Boing','Bubbles','Cellos','Deranged','Fred',
       'Good News','Bad News','Hysterical','Junior','Kathy','Organ','Princess',
       'Ralph','Trinoids','Whisper','Zarvox','Wobble','Eddy','Flo','Grandma',
-      'Grandpa','Reed','Rocko','Sandy','Shelley'
+      'Grandpa','Reed','Rocko','Sandy','Shelley','Jester','Superstar','Albert'
     ];
 
-    const FEMALE_VOICES = ['Samantha','Allison','Ava','Victoria','Susan','Kate',
-      'Moira','Fiona','Tessa','Karen','Veena','Nicky','Google US English'];
-    const MALE_VOICES  = ['Alex','Tom','Daniel','Aaron','Bruce','Gordon','Oliver'];
+    // Ordered best-first. Nicky and Aaron are the modern Siri voices and sound
+    // noticeably more natural than the older Samantha/Alex generation.
+    const FEMALE_VOICES = ['Nicky','Samantha','Ava','Allison','Zoe','Noelle',
+      'Victoria','Susan','Kate','Karen','Martha','Moira','Fiona','Tessa',
+      'Google US English'];
+    const MALE_VOICES  = ['Aaron','Evan','Nathan','Alex','Tom','Bruce','Daniel',
+      'Arthur','Gordon','Oliver'];
 
     function pickVoice(prospectName) {
       const voices = window.speechSynthesis.getVoices();
@@ -847,10 +851,14 @@
       const isFemale = FEMALE_NAMES.has(firstName);
       const preferred = isFemale ? FEMALE_VOICES : MALE_VOICES;
 
-      // 1. Exact preferred name match
-      for (const name of preferred) {
-        const match = clean.find(v => v.name.includes(name));
-        if (match) return match;
+      // 1. Preferred name match, US accents first. The same name can exist in
+      //    several locales and the prospects are all US owners, so exhaust the
+      //    en-US pool before considering en-GB/en-AU (Daniel is British).
+      for (const pool of [clean.filter(v => v.lang === 'en-US'), clean]) {
+        for (const name of preferred) {
+          const match = pool.find(v => v.name.includes(name));
+          if (match) return match;
+        }
       }
 
       // 2. Premium / enhanced / neural quality label
