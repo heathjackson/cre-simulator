@@ -170,7 +170,7 @@ const DIFFICULTY_INSTRUCTIONS = {
 
 const ROLE_INSTRUCTIONS = {
   'follow-up': 'You spoke briefly before. The rep is following up. You vaguely remember them but are not fully committed to working with them.',
-  'property-verify': 'The rep is calling to verify whether you own or lease a specific property. You are mildly curious why they are asking. You will confirm or clarify basic facts if pressed, but you want to know what this is really about before you give anything away.'
+  'cold-call': 'This is the first time the rep has ever contacted you — no prior relationship, no earlier conversation, and you were not expecting the call. You do not know who they are or why they are calling, and they caught you in the middle of your day. How receptive you end up being is driven by your disposition below, but either way they have to establish who they are and why this is worth your time before you give them anything.'
 };
 
 function buildSystemPrompt(config) {
