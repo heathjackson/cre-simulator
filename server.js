@@ -35,6 +35,13 @@ const PROSPECT_PERSONAS = {
     context: 'Owns one or more fast food pad sites — think McDonald\'s, Chick-fil-A, Taco Bell, or Wendy\'s. These are typically absolute net or NNN leases with corporate or franchisee guarantees. Focused on lease term remaining, rent bumps, and cap rate compression. May be thinking about a 1031 exchange into something with more term.',
     terminology: 'absolute net, NNN lease, corporate guarantee, franchisee vs corporate, pad site, drive-thru, cap rate compression, 1031 exchange, rent bumps, primary term, dark risk, lease expiration, yield'
   },
+  'industrial': {
+    names: ['Greg Salvato', 'Nadia Osei', 'Doug Bremer', 'Christine Vasquez'],
+    title: 'Owner',
+    company: 'a private LLC that owns industrial properties',
+    context: 'Owns one or more industrial buildings — bulk warehouse, last-mile distribution, flex, or light manufacturing. Rents have run up over the last several years, so in-place rent may be well below market on older leases. Thinking about whether to mark rents to market at rollover, refinance, or sell into buyer demand. May also own outdoor storage or excess land next to a building.',
+    terminology: 'clear height, dock-high doors, drive-in bays, truck court, trailer parking, industrial outdoor storage, last-mile, bulk distribution, flex space, mark-to-market, in-place vs market rent, NNN lease, ESFR sprinkler, column spacing, power service, functional obsolescence, cap rate, sale-leaseback'
+  },
   'early-childhood': {
     names: ['Karen Steele', 'Brian Yuen', 'Linda Hargrove', 'Tom Nguyen'],
     title: 'Owner',
