@@ -48,6 +48,13 @@ const PROSPECT_PERSONAS = {
     company: 'a private LLC that owns early childhood education properties',
     context: 'Owns one or more properties leased to or operated as daycares, preschools, or early childhood education centers. May be a passive investor with a NNN lease to a childcare chain, or an operator who owns their own building. Curious about valuations but not always familiar with the investment sale process. Protective of a tenant that serves families in the community.',
     terminology: 'NNN lease, licensed capacity, operating covenant, lease term, cap rate, sale-leaseback, owner-user, corporate vs franchisee tenant, lease rollover, childcare chain, essential-use property'
+  },
+  'medical': {
+    names: ['Dr. Alan Whitfield', 'Renee Castellano', 'Dr. Priya Menon', 'Gordon Blakely'],
+    title: 'Owner',
+    company: 'a private LLC that owns medical-use properties',
+    context: 'Owns one or more medical office buildings or outpatient facilities — could be a physician-owned building, an ambulatory surgery center, an urgent care, or a multi-tenant MOB leased to various practices. May be a doctor who owns their own building as an owner-user, or a passive investor with health-system or physician-group tenants. Weighing whether to sell into strong healthcare real estate demand, refinance, or hold for the credit tenancy.',
+    terminology: 'medical office building (MOB), on-campus vs off-campus, health system affiliation, credit tenant, physician group lease, ambulatory surgery center, HVAC / plumbing built for medical use, ADA compliance, lease term remaining, cap rate, owner-user, sale-leaseback, tenant improvement allowance'
   }
 };
 
@@ -161,6 +168,12 @@ Instead of responding immediately, ask: "Can you tell me more about that?"
 Most objections are not the real objection. The real reason is usually: wants more money, doesn't trust the broker yet, doesn't understand the market, has no clear plan, doesn't feel urgency, or is emotionally attached to the asset.
 `;
 
+const OWNER_SLANG = `
+Cash flow & yield — "mailbox money" (fully passive income with zero landlord duties, like a triple-net lease or a syndication check), "clip coupons" (owning ultra-safe, low-risk property — e.g. leased to a government agency or investment-grade corporation — that pays steady, guaranteed returns), "yield chase" (taking on riskier secondary-market deals because safe properties aren't paying enough anymore), "dry powder" (cash sitting on the sidelines, ready to deploy fast if a good distressed deal shows up).
+Building condition & property type — "vanilla box" (space delivered finished — drywall, lighting, HVAC, flooring — ready for the tenant's own buildout), "warm shell" (basic HVAC/utilities hooked up but otherwise unfinished), "cold shell" (completely unfinished, no heating/cooling or interior finishes), "ghost kitchen" / "dark kitchen" (delivery-only commercial kitchen, no dine-in space), "zombie mall" (a dying or abandoned enclosed mall with high vacancy and no foot traffic).
+Deals & market behavior — "hair on a deal" (a property with legal, environmental, or structural complications that make it hard to close), "whisper listing" (an off-market property being quietly shopped to select buyers, not publicly listed), "J-curve" (value-add returns dipping early from renovation costs, then spiking once the property stabilizes), "trade" (used instead of "sold" — e.g. "it traded for $40 million").
+`;
+
 const DIFFICULTY_INSTRUCTIONS = {
   warm: 'You are mildly interested and somewhat open. You have a genuine need but are not in a rush. You ask reasonable questions and are willing to share information if the rep earns it. Warm up further if they ask good discovery questions.',
   cold: 'You are skeptical and guarded. You get cold calls all the time and have no patience for generic pitches. You will push back, ask "why should I care," and give short answers unless the rep says something genuinely relevant.',
@@ -178,6 +191,14 @@ function buildSystemPrompt(config) {
   const name = persona.names[Math.floor(Math.random() * persona.names.length)];
   const difficulty = DIFFICULTY_INSTRUCTIONS[config.difficulty];
   const role = ROLE_INSTRUCTIONS[config.role];
+  const usesSlang = Math.random() < 0.4;
+  const slangLine = usesSlang
+    ? `- You like to talk like a real investor, not a textbook. When it genuinely fits what's being discussed, reach for casual CRE slang from this list — each term has a specific meaning, so only use one when its actual meaning applies (don't use "mailbox money" for a hands-on deal, or "hair on a deal" when nothing's wrong): ${OWNER_SLANG} Use at most one or two per call, naturally, not back to back.`
+    : `- You're a sharper, more buttoned-up investor. Favor the precise technical terminology over casual slang, and only very occasionally let a phrase like "trade" (instead of "sold") slip in.`;
+  const isEarlyHangup = config.difficulty === 'cold' && Math.random() < 0.2;
+  const earlyHangupLine = isEarlyHangup
+    ? `\n- EARLY HANG-UP: You have almost no patience for a weak opener. Judge the rep's first one or two responses — if by then they have not clearly told you who they are, why they're calling, and given you a real, credible reason to keep listening, lose patience and end the call: deliver one short, dismissive line ("I don't have time for this, take me off your list" / "Not interested, gotta go") and hang up. If the rep says anything after that, respond only with something like "*click* — the line's dead." to make clear the call already ended. If the rep DOES hook you within that window with a clear, credible reason for the call, drop this rule entirely and continue the call normally per your disposition above — never mention this rule or that you were about to hang up.`
+    : '';
 
   return {
     systemPrompt: `You are ${name}, ${persona.title} at ${persona.company} based in ${config.market}.
@@ -192,6 +213,7 @@ BEHAVIORAL RULES:
 - Stay in character as ${name} at all times. Never break character, offer coaching, or acknowledge this is a simulation.
 - Keep responses conversational and realistic: 1–4 sentences maximum.
 - Use natural CRE terminology where appropriate: ${persona.terminology}
+${slangLine}${earlyHangupLine}
 - React authentically — warm up if the rep asks smart discovery questions, push back if they pitch too early or sound generic.
 - If the rep goes silent or says something off-topic, respond as a real person would: "Hello? You still there?" or "I'm not sure what you mean."
 - Do not volunteer information freely — make the rep earn it through good questions.
