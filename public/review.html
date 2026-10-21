@@ -229,6 +229,29 @@
       border: 1px solid var(--border); border-radius: var(--radius-sm);
     }
 
+    /* RETHINK */
+    .rethink {
+      margin-bottom: 1.75rem; padding: 16px; border-radius: var(--radius-sm);
+      background: rgba(79,110,247,0.06); border: 1px solid rgba(79,110,247,0.3);
+    }
+    .rethink-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .rethink-head h3 { margin-bottom: 0; color: var(--accent); }
+    .rethink h4 { font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 14px 0 6px; }
+    .rethink .note-box {
+      white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6;
+      padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    }
+    .task-card { padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; line-height: 1.55; }
+    .task-card .task-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+    .task-card .task-subject { font-weight: 600; }
+    .task-card .task-due { font-size: 13px; font-weight: 700; color: var(--accent); }
+    .task-card .task-meta { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+    .small-btn {
+      padding: 6px 12px; background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    .small-btn:hover { background: rgba(79,110,247,0.1); }
+
     .actions { display: flex; gap: 10px; margin-top: 0.5rem; }
     .secondary-btn {
       flex: 1; padding: 12px; background: transparent; color: var(--text); border: 2px solid var(--border);
@@ -260,6 +283,8 @@
       body { background: #fff; color: #111; padding: 0; }
       .app-header, .tabs, .actions, .toast { display: none !important; }
       .card { border: none; padding: 0; background: #fff; }
+      .small-btn { display: none !important; }
+      .rethink, .note-box, .task-card { background: #fff !important; color: #111; border-color: #ddd !important; }
       .summary-text, .item, ul.plain li { background: #f6f6f8 !important; color: #111; border-color: #ddd !important; }
       .quote, .obj-line, .sc-note, .snapshot { color: #444 !important; }
       .bar-wrap { background: #e5e5ea; }
@@ -284,7 +309,7 @@
   <!-- UPLOAD SCREEN -->
   <div id="screen-upload" class="screen active">
     <div class="card">
-      <h2>Review a Real Call</h2>
+      <h2>Review a Real Call / Summary for Rethink</h2>
       <p class="subtitle">Download the transcript of your call from Terrakotta, drop it here, and get coaching feedback in under a minute. Speaker labels like "Speaker 1" are fine; the coach will figure out who's who.</p>
 
       <input type="file" id="fileInput" accept=".docx,.doc,.pdf,.txt,.text,.md,.vtt,.srt,.csv,.json" hidden>
@@ -658,6 +683,8 @@
 
         <div class="summary-text">${escapeHtml(d.overallSummary)}</div>
 
+        ${renderRethink(d)}
+
         ${scorecard ? `<div class="r-section"><h3>Scorecard</h3><div class="scorecard">${scorecard}</div></div>` : ''}
         ${strengths ? `<div class="r-section"><h3>What went well</h3>${strengths}</div>` : ''}
         ${improvements ? `<div class="r-section"><h3>What to work on</h3>${improvements}</div>` : ''}
@@ -680,6 +707,76 @@
         </div>`;
 
       setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w), 80);
+    }
+
+    function formatDue(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+      if (!m) return iso || '';
+      const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+      return dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function rethinkNoteText(d) {
+      const r = d.rethink || {};
+      const list = arr => Array.isArray(arr) ? arr.filter(x => x && x.value) : [];
+      const today = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+      const L = [`${today} – Call${lastMeta.brokerName ? ' (' + lastMeta.brokerName + ')' : ''}${d.outcome ? ' – ' + d.outcome : ''}`];
+      if (r.note) L.push('', r.note);
+      if (list(r.property).length) {
+        L.push('', 'PROPERTY');
+        list(r.property).forEach(p => L.push(`- ${p.label}: ${p.value}`));
+      }
+      if (r.ownerSituation) L.push('', 'OWNER', `- ${r.ownerSituation}`);
+      const t = r.nextTask;
+      if (t && t.subject) L.push('', `NEXT STEP: ${t.subject}${t.dueDate ? ' – due ' + formatDue(t.dueDate) : ''}`);
+      return L.join('\n');
+    }
+
+    function rethinkTaskText(d) {
+      const t = (d.rethink || {}).nextTask || {};
+      return [
+        `Subject: ${t.subject || ''}`,
+        t.type ? `Type: ${t.type}` : null,
+        t.dueDate ? `Due: ${formatDue(t.dueDate)}` : null,
+        t.details ? `Details: ${t.details}` : null
+      ].filter(Boolean).join('\n');
+    }
+
+    function renderRethink(d) {
+      const r = d.rethink;
+      if (!r) return '';
+      const t = r.nextTask && r.nextTask.subject ? r.nextTask : null;
+      return `
+        <div class="rethink">
+          <div class="rethink-head">
+            <h3>Summary for Rethink</h3>
+            <button class="small-btn" onclick="copyText(rethinkNoteText(lastReview), 'Rethink note copied')">Copy note</button>
+          </div>
+          <h4>1. Paste this as an activity note on the property / contact</h4>
+          <div class="note-box">${escapeHtml(rethinkNoteText(d))}</div>
+          ${t ? `
+          <div class="rethink-head" style="margin-top: 14px; margin-bottom: 6px;">
+            <h4 style="margin: 0;">2. Create this task in Rethink</h4>
+            <button class="small-btn" onclick="copyText(rethinkTaskText(lastReview), 'Task details copied')">Copy task</button>
+          </div>
+          <div class="task-card">
+            <div class="task-top">
+              <span class="task-subject">${t.type ? escapeHtml(t.type) + ': ' : ''}${escapeHtml(t.subject)}</span>
+              ${t.dueDate ? `<span class="task-due">Due ${escapeHtml(formatDue(t.dueDate))}</span>` : ''}
+            </div>
+            ${t.details ? `<div class="task-meta">${escapeHtml(t.details)}</div>` : ''}
+            ${t.timingReason ? `<div class="task-meta"><b>Why this date:</b> ${escapeHtml(t.timingReason)}</div>` : ''}
+          </div>` : ''}
+        </div>`;
+    }
+
+    async function copyText(text, msg) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(msg);
+      } catch (e) {
+        toast('Could not copy. Select the text and copy it manually.');
+      }
     }
 
     function reviewToText(d) {
@@ -709,6 +806,7 @@
       if (list(d.ownerIntel).length) { L.push('', 'OWNER INTEL'); list(d.ownerIntel).forEach(x => L.push('- ' + x)); }
       if (list(d.nextSteps).length) { L.push('', 'NEXT STEPS'); list(d.nextSteps).forEach(x => L.push('- ' + x)); }
       if (d.technique) L.push('', 'PRACTICE NEXT CALL', d.technique);
+      if (d.rethink) L.push('', '— RETHINK NOTE —', rethinkNoteText(d));
       return L.join('\n');
     }
 

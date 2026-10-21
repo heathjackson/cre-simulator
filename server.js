@@ -409,6 +409,9 @@ app.post('/review-call', async (req, res) => {
     notes ? `- Broker's notes about this call: ${String(notes).slice(0, 1500)}` : null
   ].filter(Boolean).join('\n');
 
+  const now = new Date();
+  const today = `${now.toLocaleDateString('en-US', { weekday: 'long' })}, ${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   const reviewPrompt = `You are a senior commercial real estate sales coach at Ackerman & Co. reviewing the transcript of a REAL phone call that ${broker} made to a property owner. This is not a practice call — it is the broker's actual work, so be honest, specific, and constructive, like a respected manager doing a call review.
 
 CALL CONTEXT (provided by the broker):
@@ -459,15 +462,34 @@ Return ONLY a JSON object in exactly this shape (no markdown fences, no extra te
   "missedOpportunities": ["<something the owner said that the broker could have dug into, and the question to ask>"],
   "ownerIntel": ["<useful fact learned about the owner or property: hold period, loan, lease term, other properties, motivations, timing>"],
   "nextSteps": ["<concrete follow-up action with THIS owner, e.g. 'Send BOV by Friday', 'Call back in 6 months re: loan maturity'>"],
-  "technique": "<one concrete thing to practice on the next call, with the actual words>"
+  "technique": "<one concrete thing to practice on the next call, with the actual words>",
+  "rethink": {
+    "property": [
+      { "label": "<e.g. 'Address', 'Property type', 'Size', 'Units / SF', 'Year built', 'Occupancy', 'Tenants / lease terms', 'Ownership', 'Hold period', 'Debt / loan', 'Recent capex', 'Owner's value expectation', 'Other properties owned'>", "value": "<what was actually said on the call>" }
+    ],
+    "ownerSituation": "<one sentence on the owner's motivation, timing, and openness to selling or a BOV, or empty string if unknown>",
+    "note": "<2-3 sentence factual activity note written in third person for the CRM, e.g. 'Spoke with owner re: 123 Main St...'. No coaching, no scores.>",
+    "nextTask": {
+      "type": "<'Call', 'Email', 'Meeting', 'Send BOV', or 'Mail'>",
+      "subject": "<short task title as it should appear in Rethink, e.g. 'Follow up w/ John Smith re: 123 Main St BOV'>",
+      "details": "<what to do or say on that touch, and why, referencing what was learned on this call>",
+      "dueDate": "<YYYY-MM-DD>",
+      "timingReason": "<why that date, e.g. 'Owner asked to reconnect after Q1 lease renewals'>"
+    }
+  }
 }
+
+RETHINK SECTION RULES:
+- Today's date is ${today}. Assume the call happened today unless the transcript or notes say otherwise.
+- "property" lists ONLY facts actually stated on the call (or in the broker's notes). Never guess or fill in blanks. Use only the labels that apply. Use an empty array if nothing about the property was learned.
+- "nextTask" is the single most important follow-up to log in Rethink. Base the due date on what the owner said (e.g. "call me after the holidays", "loan matures next spring"). If nothing specific was said, use normal cadence: 1-2 business days to send promised material, about 2 weeks after a warm conversation, about 3 months after a polite "not now", about 6 months after a firm "not interested". For a voicemail or gatekeeper, retry in 3-5 business days. Never pick a weekend.
 
 Give 2-4 strengths and 2-4 improvements. Objections, missedOpportunities, ownerIntel, and nextSteps may be empty arrays if not applicable. Keep quotes short (under 25 words) and verbatim from the transcript.`;
 
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 5000,
       messages: [{ role: 'user', content: reviewPrompt }]
     });
     const text = response.content.map(b => b.text || '').join('');
