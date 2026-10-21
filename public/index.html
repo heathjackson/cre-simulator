@@ -67,6 +67,18 @@
       margin-left: 2px;
     }
 
+    /* NAV TABS */
+    .tabs {
+      width: 100%; max-width: 680px; display: flex; gap: 6px; margin: -0.75rem 0 1.5rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px;
+    }
+    .tabs a {
+      flex: 1; text-align: center; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); text-decoration: none; transition: all 0.15s;
+    }
+    .tabs a:hover { color: var(--text); }
+    .tabs a.active { background: var(--surface2); color: var(--text); }
+
     /* SCREEN SYSTEM */
     .screen { display: none; width: 100%; max-width: 680px; }
     .screen.active { display: block; }
@@ -501,6 +513,11 @@
       <span>Practice · Improve · Close</span>
     </div>
   </div>
+
+  <nav class="tabs">
+    <a href="/" class="active">Practice Simulator</a>
+    <a href="/review">Review a Real Call</a>
+  </nav>
 
   <!-- SETUP SCREEN -->
   <div id="screen-setup" class="screen active">

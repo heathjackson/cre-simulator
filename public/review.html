@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Call Review</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #4f6ef7;
+      --accent-hover: #3d5ce0;
+      --accent-danger: #e84560;
+      --accent-success: #2dce89;
+      --accent-warn: #ffb400;
+      --text: #e8eaf6;
+      --text-muted: #8b8fa8;
+      --text-dim: #555b7a;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .app-header {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .app-header .logo {
+      width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .app-header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    .app-header span { font-size: 13px; color: var(--text-muted); margin-left: 2px; }
+
+    .tabs {
+      width: 100%; max-width: 760px; display: flex; gap: 6px; margin-bottom: 1.5rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px;
+    }
+    .tabs a {
+      flex: 1; text-align: center; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); text-decoration: none; transition: all 0.15s;
+    }
+    .tabs a:hover { color: var(--text); }
+    .tabs a.active { background: var(--surface2); color: var(--text); }
+
+    .screen { display: none; width: 100%; max-width: 760px; }
+    .screen.active { display: block; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem;
+    }
+    .card h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .card .subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    /* DROP ZONE */
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface2);
+      padding: 2.25rem 1rem; text-align: center; cursor: pointer; transition: all 0.15s;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(79,110,247,0.08); }
+    .dropzone .dz-icon { font-size: 30px; margin-bottom: 8px; }
+    .dropzone .dz-title { font-size: 15px; font-weight: 600; }
+    .dropzone .dz-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .dropzone .dz-link { color: var(--accent); text-decoration: underline; }
+
+    .or-row {
+      display: flex; align-items: center; gap: 10px; margin: 1rem 0;
+      font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .file-chip {
+      display: none; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px;
+      background: rgba(79,110,247,0.1); border: 1px solid rgba(79,110,247,0.3); border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+    .file-chip.show { display: flex; }
+    .file-chip .name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-chip button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; }
+    .file-chip button:hover { color: var(--text); }
+
+    textarea, input[type=text], select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--text); font-size: 14px; font-family: inherit; padding: 10px 12px;
+    }
+    textarea { resize: vertical; line-height: 1.5; }
+    #transcript { min-height: 180px; font-size: 13px; }
+    textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); }
+    select {
+      appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b8fa8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+    }
+    ::placeholder { color: var(--text-dim); }
+
+    .meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .section-label {
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin: 1.5rem 0 10px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .form-group label em { font-style: normal; color: var(--text-dim); font-weight: 400; }
+
+    .primary-btn {
+      width: 100%; margin-top: 1.5rem; padding: 14px; background: var(--accent); color: white; border: none;
+      border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .primary-btn:hover { background: var(--accent-hover); }
+    .primary-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .error-box {
+      display: none; margin-top: 1rem; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px;
+      background: rgba(232,69,96,0.1); border: 1px solid rgba(232,69,96,0.35); color: #ff8fa3; line-height: 1.5;
+    }
+    .error-box.show { display: block; }
+
+    .privacy-note { font-size: 12px; color: var(--text-dim); margin-top: 12px; text-align: center; line-height: 1.5; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .hint { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    /* RESULTS */
+    .result-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+    .result-header h2 { font-size: 20px; font-weight: 600; }
+    .snapshot { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+
+    .grade-badge {
+      width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 800; flex-shrink: 0;
+    }
+    .grade-A { background: rgba(45,206,137,0.15); color: var(--accent-success); border: 2px solid var(--accent-success); }
+    .grade-B { background: rgba(79,110,247,0.15); color: var(--accent); border: 2px solid var(--accent); }
+    .grade-C { background: rgba(255,180,0,0.15); color: var(--accent-warn); border: 2px solid var(--accent-warn); }
+    .grade-D, .grade-F { background: rgba(232,69,96,0.15); color: var(--accent-danger); border: 2px solid var(--accent-danger); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
+    .chip {
+      font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .chip.strong { color: var(--accent-success); border-color: rgba(45,206,137,0.4); background: rgba(45,206,137,0.08); }
+    .chip.partial { color: var(--accent-warn); border-color: rgba(255,180,0,0.4); background: rgba(255,180,0,0.08); }
+    .chip.missed { color: var(--accent-danger); border-color: rgba(232,69,96,0.4); background: rgba(232,69,96,0.08); }
+
+    .score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
+    .bar-wrap { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0; border-radius: 4px; background: var(--accent); transition: width 0.8s ease; }
+    .score-label { font-size: 13px; color: var(--text-muted); min-width: 84px; }
+    .score-value { font-size: 14px; font-weight: 700; min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .summary-text {
+      font-size: 14px; line-height: 1.65; color: var(--text); margin-bottom: 1.75rem; padding: 14px;
+      background: var(--surface2); border-radius: var(--radius-sm);
+    }
+
+    .r-section { margin-bottom: 1.75rem; }
+    .r-section h3 {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text-dim); margin-bottom: 10px;
+    }
+
+    .scorecard { display: flex; flex-direction: column; gap: 10px; }
+    .sc-row { display: grid; grid-template-columns: 190px 1fr 36px; gap: 12px; align-items: center; }
+    .sc-row .sc-name { font-size: 13px; font-weight: 600; }
+    .sc-row .sc-note { grid-column: 1 / -1; font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -4px; }
+    .sc-row .score-value { font-size: 13px; }
+
+    .item {
+      display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm);
+      font-size: 14px; line-height: 1.55; margin-bottom: 8px;
+    }
+    .item .icon { flex-shrink: 0; margin-top: 1px; }
+    .item .body { flex: 1; min-width: 0; }
+    .item.strength { background: rgba(45,206,137,0.08); border: 1px solid rgba(45,206,137,0.2); }
+    .item.improve { background: rgba(255,180,0,0.08); border: 1px solid rgba(255,180,0,0.2); }
+    .item.technique { background: rgba(79,110,247,0.08); border: 1px solid rgba(79,110,247,0.25); }
+    .item.neutral { background: var(--surface2); border: 1px solid var(--border); }
+
+    .quote {
+      margin-top: 8px; padding-left: 10px; border-left: 2px solid var(--border);
+      font-size: 13px; color: var(--text-muted); font-style: italic;
+    }
+    .try {
+      margin-top: 8px; font-size: 13px; color: var(--text);
+    }
+    .try b { color: var(--accent); font-weight: 600; }
+
+    .obj-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .obj-head .o-title { font-weight: 600; }
+    .rating { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+    .rating.well { color: var(--accent-success); }
+    .rating.partly { color: var(--accent-warn); }
+    .rating.missed { color: var(--accent-danger); }
+    .obj-line { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    ul.plain { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    ul.plain li {
+      font-size: 13px; line-height: 1.5; padding: 10px 12px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+    }
+
+    .actions { display: flex; gap: 10px; margin-top: 0.5rem; }
+    .secondary-btn {
+      flex: 1; padding: 12px; background: transparent; color: var(--text); border: 2px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .secondary-btn:hover { border-color: var(--text-muted); }
+    .actions .primary-btn { margin-top: 0; flex: 1.4; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0;
+      background: var(--surface2); border: 1px solid var(--border); padding: 10px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; transition: all 0.2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 640px) {
+      .card { padding: 1.25rem; }
+      .form-grid, .two-col { grid-template-columns: 1fr; }
+      .sc-row { grid-template-columns: 1fr 36px; }
+      .sc-row .bar-wrap { grid-column: 1 / -1; grid-row: 2; }
+      .actions { flex-direction: column; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; padding: 0; }
+      .app-header, .tabs, .actions, .toast { display: none !important; }
+      .card { border: none; padding: 0; background: #fff; }
+      .summary-text, .item, ul.plain li { background: #f6f6f8 !important; color: #111; border-color: #ddd !important; }
+      .quote, .obj-line, .sc-note, .snapshot { color: #444 !important; }
+      .bar-wrap { background: #e5e5ea; }
+      .r-section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <div class="logo">🎧</div>
+    <div>
+      <h1>CRE Call Coach</h1>
+      <span>Practice · Improve · Close</span>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <a href="/">Practice Simulator</a>
+    <a href="/review" class="active">Review a Real Call</a>
+  </nav>
+
+  <!-- UPLOAD SCREEN -->
+  <div id="screen-upload" class="screen active">
+    <div class="card">
+      <h2>Review a Real Call</h2>
+      <p class="subtitle">Download the transcript of your call from Terrakotta, drop it here, and get coaching feedback in under a minute. Speaker labels like "Speaker 1" are fine; the coach will figure out who's who.</p>
+
+      <input type="file" id="fileInput" accept=".docx,.doc,.pdf,.txt,.text,.md,.vtt,.srt,.csv,.json" hidden>
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">📄</div>
+        <div class="dz-title">Drop your Terrakotta transcript here</div>
+        <div class="dz-sub">or <span class="dz-link">browse files</span> · Export from Terrakotta as <b>.txt</b> (recommended). PDF and Word also work.</div>
+      </div>
+
+      <div class="or-row">or paste it</div>
+
+      <div class="file-chip" id="fileChip">
+        <span>📎</span>
+        <span class="name" id="fileName"></span>
+        <button onclick="clearTranscript()">Remove</button>
+      </div>
+      <textarea id="transcript" placeholder="Paste the call transcript here, or copy it straight from the call in Terrakotta…"></textarea>
+      <div class="meta-row">
+        <span id="wordCount">0 words</span>
+        <span>You can edit the text before submitting</span>
+      </div>
+
+      <div class="section-label">About the call <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text-dim)">(optional, sharpens the feedback)</span></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="brokerName">Your name</label>
+          <input type="text" id="brokerName" placeholder="e.g. Jordan">
+        </div>
+        <div class="form-group">
+          <label for="callType">Call type</label>
+          <select id="callType">
+            <option value="">Not sure / let the coach decide</option>
+            <option value="First cold call">First cold call</option>
+            <option value="Follow-up call">Follow-up call</option>
+            <option value="BOV / pricing conversation">BOV / pricing conversation</option>
+            <option value="Voicemail">Voicemail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="propertyType">Property type</label>
+          <select id="propertyType">
+            <option value="">Not sure / mixed</option>
+            <option>Retail</option>
+            <option>Auto (gas, car wash, lube)</option>
+            <option>QSR (quick service restaurant)</option>
+            <option>Industrial</option>
+            <option>Early childhood (daycare / preschool)</option>
+            <option>Medical office / outpatient</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="market">Market</label>
+          <select id="market">
+            <option value="">Not specified</option>
+            <option>Atlanta</option>
+            <option>Florida</option>
+            <option>South Carolina</option>
+            <option>North Carolina</option>
+            <option>Texas</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label for="notes">Anything the coach should know? <em>e.g. "Owner hung up early" or "I want feedback on my BOV ask"</em></label>
+          <input type="text" id="notes" placeholder="Optional">
+        </div>
+      </div>
+
+      <button class="primary-btn" id="reviewBtn" onclick="submitReview()" disabled>Get Feedback</button>
+      <div class="error-box" id="errorBox"></div>
+      <p class="privacy-note">Transcripts are sent to Claude for analysis and aren't saved by this app.</p>
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="screen-loading" class="screen">
+    <div class="card">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p id="loadingMsg">Reading your call…</p>
+        <p class="hint">Longer calls can take up to a minute.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <div class="card" id="results"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let lastReview = null;
+    let lastMeta = {};
+
+    // Remember the broker's name between visits.
+    try { $('brokerName').value = localStorage.getItem('cre_broker_name') || ''; } catch (e) {}
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('screen-' + id).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showError(msg) {
+      const box = $('errorBox');
+      box.textContent = msg;
+      box.classList.toggle('show', !!msg);
+    }
+
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // ── Transcript input ──────────────────────────────────────────────
+    function updateCount() {
+      const text = $('transcript').value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      $('wordCount').textContent = words.toLocaleString() + ' words' + (words ? ' · ~' + Math.max(1, Math.round(words / 150)) + ' min call' : '');
+      $('reviewBtn').disabled = words < 15;
+    }
+    $('transcript').addEventListener('input', () => { showError(''); updateCount(); });
+
+    function clearTranscript() {
+      $('transcript').value = '';
+      $('fileChip').classList.remove('show');
+      $('fileInput').value = '';
+      updateCount();
+    }
+
+    const dz = $('dropzone');
+    dz.addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e => { if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+    async function loadFile(file) {
+      showError('');
+      const name = file.name || 'transcript';
+      if (file.size > 15 * 1024 * 1024) return showError('That file is over 15 MB. Is it the transcript, or the audio recording?');
+      if (/\.(mp3|m4a|wav|mp4|mov|aac)$/i.test(name)) {
+        return showError('That looks like an audio file. Transcribe it in Word first (Home → Dictate → Transcribe), then upload the Word document.');
+      }
+      $('fileName').textContent = name + ' · reading…';
+      $('fileChip').classList.add('show');
+      try {
+        let text;
+        if (/\.pdf$/i.test(name) || file.type === 'application/pdf') {
+          text = await readPdf(file);
+          if (!text.trim()) throw new Error('That PDF has no selectable text (it may be a scanned image). Try downloading the transcript as text or Word instead, or copy and paste it.');
+        } else if (/\.json$/i.test(name)) {
+          text = jsonToTranscript(await file.text());
+        } else if (/\.docx?$/i.test(name)) {
+          const buf = await file.arrayBuffer();
+          const res = await fetch('/extract-transcript', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: name, data: toBase64(buf) })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Could not read that document.');
+          text = data.text;
+        } else {
+          text = await file.text();
+          if (looksBinary(text)) throw new Error('Could not read that file type. Download the transcript from Terrakotta as PDF, Word, or text, or copy and paste it in.');
+        }
+        $('transcript').value = text;
+        $('fileName').textContent = name;
+        updateCount();
+      } catch (err) {
+        $('fileChip').classList.remove('show');
+        showError(err.message);
+      }
+    }
+
+
+    // ── PDF / JSON support ────────────────────────────────────────────
+    // pdf.js is only fetched the first time someone uploads a PDF.
+    const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+    let pdfjsReady = null;
+    function loadPdfJs() {
+      if (!pdfjsReady) {
+        pdfjsReady = new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = PDFJS + 'pdf.min.js';
+          s.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js';
+            resolve(window.pdfjsLib);
+          };
+          s.onerror = () => { pdfjsReady = null; reject(new Error('Could not load the PDF reader. Check your internet connection, or copy and paste the transcript instead.')); };
+          document.head.appendChild(s);
+        });
+      }
+      return pdfjsReady;
+    }
+
+    async function readPdf(file) {
+      const pdfjsLib = await loadPdfJs();
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      const pages = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const content = await (await pdf.getPage(n)).getTextContent();
+        let page = '';
+        for (const item of content.items) {
+          page += item.str;
+          if (item.hasEOL) page += '\n';
+          else if (item.str && !/\s$/.test(item.str)) page += ' ';
+        }
+        pages.push(page.replace(/[ \t]+\n/g, '\n').trim());
+      }
+      return pages.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    // Turn an exported JSON transcript into readable "Speaker: text" lines when
+    // it's a list of utterances; otherwise fall back to the raw JSON.
+    function jsonToTranscript(raw) {
+      let data;
+      try { data = JSON.parse(raw); } catch (e) { return raw; }
+      const TEXT = ['text', 'transcript', 'content', 'utterance', 'message', 'sentence'];
+      const WHO = ['speaker', 'speaker_name', 'speakerName', 'name', 'role', 'participant', 'channel', 'from'];
+      const pick = (o, keys) => keys.find(k => o[k] != null && typeof o[k] !== 'object');
+      function findTurns(node, depth) {
+        if (depth > 4 || node == null || typeof node !== 'object') return null;
+        if (Array.isArray(node) && node.length && node.every(x => x && typeof x === 'object' && pick(x, TEXT))) return node;
+        for (const v of Object.values(node)) { const r = findTurns(v, depth + 1); if (r) return r; }
+        return null;
+      }
+      const turns = findTurns(data, 0);
+      if (!turns) return JSON.stringify(data, null, 2);
+      return turns.map(t => {
+        const who = pick(t, WHO);
+        return (who ? t[who] + ': ' : '') + String(t[pick(t, TEXT)]).trim();
+      }).join('\n');
+    }
+
+    function looksBinary(text) {
+      const sample = text.slice(0, 4000);
+      const bad = (sample.match(/[\u0000-\u0008\u000E-\u001F\uFFFD]/g) || []).length;
+      return sample.length > 0 && bad / sample.length > 0.02;
+    }
+
+    function toBase64(buf) {
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    }
+
+    // ── Submit ────────────────────────────────────────────────────────
+    async function submitReview() {
+      showError('');
+      const brokerName = $('brokerName').value.trim();
+      try { localStorage.setItem('cre_broker_name', brokerName); } catch (e) {}
+      lastMeta = {
+        transcript: $('transcript').value,
+        brokerName,
+        callType: $('callType').value,
+        propertyType: $('propertyType').value,
+        market: $('market').value,
+        notes: $('notes').value.trim()
+      };
+
+      showScreen('loading');
+      const msgs = ['Reading your call…', 'Identifying who said what…', 'Checking discovery and objection handling…', 'Writing your coaching notes…'];
+      let i = 0;
+      $('loadingMsg').textContent = msgs[0];
+      const ticker = setInterval(() => { i = Math.min(i + 1, msgs.length - 1); $('loadingMsg').textContent = msgs[i]; }, 4500);
+
+      try {
+        const res = await fetch('/review-call', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lastMeta)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.grade) throw new Error(data.error || 'The review could not be generated. Please try again.');
+        lastReview = data;
+        renderResults(data);
+        showScreen('results');
+      } catch (err) {
+        showScreen('upload');
+        showError(err.message === 'Failed to fetch' ? 'Could not reach the server. Is it still running?' : err.message);
+      } finally {
+        clearInterval(ticker);
+      }
+    }
+
+    // ── Results ───────────────────────────────────────────────────────
+    function bar(score, max, color) {
+      const pct = score == null ? 0 : Math.max(0, Math.min(100, (score / max) * 100));
+      return `<div class="bar-wrap"><div class="bar-fill" data-w="${pct}%" style="${color ? 'background:' + color : ''}"></div></div>`;
+    }
+
+    function scoreColor(score, max) {
+      if (score == null) return 'var(--text-dim)';
+      const r = score / max;
+      return r >= 0.8 ? 'var(--accent-success)' : r >= 0.6 ? 'var(--accent)' : r >= 0.4 ? 'var(--accent-warn)' : 'var(--accent-danger)';
+    }
+
+    function renderResults(d) {
+      const grade = String(d.grade || '—').charAt(0).toUpperCase();
+      const oq = ['strong', 'partial', 'missed'].includes(d.outcomeQuality) ? d.outcomeQuality : '';
+      const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
+
+      const scorecard = list(d.scorecard).map(s => `
+        <div class="sc-row">
+          <span class="sc-name">${escapeHtml(s.category)}</span>
+          ${bar(s.score, 5, scoreColor(s.score, 5))}
+          <span class="score-value">${s.score == null ? 'N/A' : escapeHtml(s.score) + '/5'}</span>
+          <span class="sc-note">${escapeHtml(s.note)}</span>
+        </div>`).join('');
+
+      const strengths = list(d.strengths).map(s => `
+        <div class="item strength"><span class="icon">✓</span><div class="body">
+          ${escapeHtml(s.point || s)}
+          ${s.quote ? `<div class="quote">“${escapeHtml(s.quote)}”</div>` : ''}
+        </div></div>`).join('');
+
+      const improvements = list(d.improvements).map(s => `
+        <div class="item improve"><span class="icon">△</span><div class="body">
+          ${escapeHtml(s.point || s)}
+          ${s.quote ? `<div class="quote">“${escapeHtml(s.quote)}”</div>` : ''}
+          ${s.tryInstead ? `<div class="try"><b>Try instead:</b> ${escapeHtml(s.tryInstead)}</div>` : ''}
+        </div></div>`).join('');
+
+      const objections = list(d.objections).map(o => {
+        const r = ['well', 'partly', 'missed'].includes(o.rating) ? o.rating : '';
+        const label = { well: 'Handled well', partly: 'Partly handled', missed: 'Missed' }[r] || '';
+        return `
+        <div class="item neutral"><span class="icon">🛡</span><div class="body">
+          <div class="obj-head"><span class="o-title">“${escapeHtml(o.objection)}”</span><span class="rating ${r}">${label}</span></div>
+          ${o.handled ? `<div class="obj-line"><b>What you said:</b> ${escapeHtml(o.handled)}</div>` : ''}
+          ${o.suggestion ? `<div class="try"><b>Stronger response:</b> ${escapeHtml(o.suggestion)}</div>` : ''}
+        </div></div>`;
+      }).join('');
+
+      const ul = arr => `<ul class="plain">${list(arr).map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`;
+      const intel = list(d.ownerIntel), steps = list(d.nextSteps), missed = list(d.missedOpportunities);
+
+      $('results').innerHTML = `
+        <div class="result-header">
+          <div>
+            <h2>Call Review${lastMeta.brokerName ? ' · ' + escapeHtml(lastMeta.brokerName) : ''}</h2>
+            ${d.callSnapshot ? `<div class="snapshot">${escapeHtml(d.callSnapshot)}</div>` : ''}
+          </div>
+          <div class="grade-badge grade-${grade}">${escapeHtml(grade)}</div>
+        </div>
+
+        <div class="chips">
+          ${d.outcome ? `<span class="chip ${oq}">Outcome: ${escapeHtml(d.outcome)}</span>` : ''}
+          ${d.brokerSpeaker ? `<span class="chip">You: ${escapeHtml(d.brokerSpeaker)}</span>` : ''}
+          ${d.ownerSpeaker ? `<span class="chip">Owner: ${escapeHtml(d.ownerSpeaker)}</span>` : ''}
+        </div>
+
+        <div class="score-row">
+          <span class="score-label">Overall</span>
+          ${bar(d.overallScore, 10)}
+          <span class="score-value">${escapeHtml(d.overallScore ?? '—')}/10</span>
+        </div>
+
+        <div class="summary-text">${escapeHtml(d.overallSummary)}</div>
+
+        ${scorecard ? `<div class="r-section"><h3>Scorecard</h3><div class="scorecard">${scorecard}</div></div>` : ''}
+        ${strengths ? `<div class="r-section"><h3>What went well</h3>${strengths}</div>` : ''}
+        ${improvements ? `<div class="r-section"><h3>What to work on</h3>${improvements}</div>` : ''}
+        ${objections ? `<div class="r-section"><h3>Objections</h3>${objections}</div>` : ''}
+        ${missed.length ? `<div class="r-section"><h3>Missed opportunities</h3>${ul(missed)}</div>` : ''}
+
+        ${(intel.length || steps.length) ? `
+        <div class="r-section two-col">
+          ${intel.length ? `<div><h3>What you learned about the owner</h3>${ul(intel)}</div>` : ''}
+          ${steps.length ? `<div><h3>Recommended next steps</h3>${ul(steps)}</div>` : ''}
+        </div>` : ''}
+
+        ${d.technique ? `<div class="r-section"><h3>Practice this on your next call</h3>
+          <div class="item technique"><span class="icon">→</span><div class="body">${escapeHtml(d.technique)}</div></div></div>` : ''}
+
+        <div class="actions">
+          <button class="secondary-btn" onclick="copyReview()">Copy feedback</button>
+          <button class="secondary-btn" onclick="window.print()">Print / Save PDF</button>
+          <button class="primary-btn" onclick="reviewAnother()">Review another call</button>
+        </div>`;
+
+      setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w), 80);
+    }
+
+    function reviewToText(d) {
+      const L = [];
+      const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
+      L.push(`CALL REVIEW${lastMeta.brokerName ? ' — ' + lastMeta.brokerName : ''}`);
+      L.push(`Grade: ${d.grade}  ·  Score: ${d.overallScore}/10  ·  Outcome: ${d.outcome || '—'}`);
+      if (d.callSnapshot) L.push(d.callSnapshot);
+      L.push('', d.overallSummary || '');
+      if (list(d.scorecard).length) {
+        L.push('', 'SCORECARD');
+        list(d.scorecard).forEach(s => L.push(`- ${s.category}: ${s.score == null ? 'N/A' : s.score + '/5'} — ${s.note}`));
+      }
+      if (list(d.strengths).length) {
+        L.push('', 'WHAT WENT WELL');
+        list(d.strengths).forEach(s => L.push(`- ${s.point || s}${s.quote ? ` ("${s.quote}")` : ''}`));
+      }
+      if (list(d.improvements).length) {
+        L.push('', 'WHAT TO WORK ON');
+        list(d.improvements).forEach(s => { L.push(`- ${s.point || s}`); if (s.tryInstead) L.push(`  Try instead: ${s.tryInstead}`); });
+      }
+      if (list(d.objections).length) {
+        L.push('', 'OBJECTIONS');
+        list(d.objections).forEach(o => { L.push(`- "${o.objection}" (${o.rating})`); if (o.suggestion) L.push(`  Stronger response: ${o.suggestion}`); });
+      }
+      if (list(d.missedOpportunities).length) { L.push('', 'MISSED OPPORTUNITIES'); list(d.missedOpportunities).forEach(x => L.push('- ' + x)); }
+      if (list(d.ownerIntel).length) { L.push('', 'OWNER INTEL'); list(d.ownerIntel).forEach(x => L.push('- ' + x)); }
+      if (list(d.nextSteps).length) { L.push('', 'NEXT STEPS'); list(d.nextSteps).forEach(x => L.push('- ' + x)); }
+      if (d.technique) L.push('', 'PRACTICE NEXT CALL', d.technique);
+      return L.join('\n');
+    }
+
+    async function copyReview() {
+      try {
+        await navigator.clipboard.writeText(reviewToText(lastReview));
+        toast('Feedback copied to clipboard');
+      } catch (e) {
+        toast('Could not copy. Try Print / Save PDF instead.');
+      }
+    }
+
+    function reviewAnother() {
+      clearTranscript();
+      $('notes').value = '';
+      showError('');
+      showScreen('upload');
+    }
+
+    updateCount();
+  </script>
+</body>
+</html>

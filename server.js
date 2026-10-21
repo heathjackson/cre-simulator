@@ -5,12 +5,14 @@
 require('dotenv').config({ override: true });
 const express = require('express');
 const path = require('path');
+const zlib = require('zlib');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-app.use(express.json());
+// Raised from the 100kb default so Word transcripts can be uploaded as base64.
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PROSPECT_PERSONAS = {
@@ -317,6 +319,169 @@ Be specific to what was actually said. Do not be generic.`;
     console.error('Debrief API error:', error);
     sendApiError(res, error, 'Debrief generation failed');
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REAL CALL REVIEW
+// Brokers upload a transcript of an actual call (Word .docx, .txt, or pasted)
+// and get coaching feedback built on the same playbook as the simulator.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A .docx is a zip archive; the text lives in word/document.xml. Reading it
+// directly with zlib keeps this dependency-free — no npm install needed.
+function extractDocxText(buf) {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('That file is not a valid Word (.docx) document.');
+  const entries = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  for (let n = 0; n < entries; n++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) break;
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const localOffset = buf.readUInt32LE(p + 42);
+    const name = buf.toString('utf8', p + 46, p + 46 + nameLen);
+    if (name === 'word/document.xml') {
+      const start = localOffset + 30 + buf.readUInt16LE(localOffset + 26) + buf.readUInt16LE(localOffset + 28);
+      const raw = buf.subarray(start, start + compSize);
+      const xml = (method === 0 ? raw : zlib.inflateRawSync(raw)).toString('utf8');
+      return docxXmlToText(xml);
+    }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  throw new Error('Could not find any text in that Word document.');
+}
+
+function docxXmlToText(xml) {
+  return xml
+    .replace(/<w:instrText[\s\S]*?<\/w:instrText>/g, '')
+    .replace(/<w:tab\/>/g, '\t')
+    .replace(/<w:br[^>]*\/>/g, '\n')
+    .replace(/<\/w:tc>/g, '\t')
+    .replace(/<\/w:p>/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&amp;/g, '&')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+app.post('/extract-transcript', (req, res) => {
+  const { filename, data } = req.body || {};
+  if (!data) return res.status(400).json({ error: 'No file received.' });
+  if (/\.doc$/i.test(filename || '')) {
+    return res.status(400).json({ error: 'Older .doc files are not supported. In Word, use File → Save As → Word Document (.docx) and upload that.' });
+  }
+  try {
+    const text = extractDocxText(Buffer.from(data, 'base64'));
+    if (!text) return res.status(400).json({ error: 'That document appears to be empty.' });
+    res.json({ text });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+const MAX_TRANSCRIPT_CHARS = 150000;
+
+app.post('/review-call', async (req, res) => {
+  const { transcript, brokerName, propertyType, callType, market, notes } = req.body || {};
+  if (!transcript || transcript.trim().length < 80) {
+    return res.status(400).json({ error: 'The transcript is too short to review. Upload or paste the full call.' });
+  }
+  if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+    return res.status(400).json({ error: 'That transcript is very long (over ~2 hours of talk). Trim it to a single call and try again.' });
+  }
+
+  const broker = (brokerName || '').trim() || 'the broker';
+  const context = [
+    `- Broker: ${broker}`,
+    `- Property type: ${propertyType || 'not specified — infer from the call if you can'}`,
+    `- Call type: ${callType || 'not specified — infer from the call'}`,
+    `- Market: ${market || 'not specified'}`,
+    notes ? `- Broker's notes about this call: ${String(notes).slice(0, 1500)}` : null
+  ].filter(Boolean).join('\n');
+
+  const reviewPrompt = `You are a senior commercial real estate sales coach at Ackerman & Co. reviewing the transcript of a REAL phone call that ${broker} made to a property owner. This is not a practice call — it is the broker's actual work, so be honest, specific, and constructive, like a respected manager doing a call review.
+
+CALL CONTEXT (provided by the broker):
+${context}
+
+ABOUT THE TRANSCRIPT:
+- It was produced by automatic transcription (e.g. Microsoft Word). Speakers may be labeled "Speaker 1 / Speaker 2", by name, or not at all, and there may be timestamps, misheard words, filler, and run-together turns.
+- First work out which speaker is the broker (the person calling on behalf of Ackerman / a brokerage, asking about the owner's property). If unlabeled, infer turns from context.
+- Never penalize transcription errors. Do not invent things that were not said.
+- If the call is only a voicemail, a gatekeeper, or a wrong number, review what the broker could control (message clarity, reason to call back, how they handled the gatekeeper) and say so in the summary.
+- Real calls are messier than practice calls — judge against what a strong broker would realistically do on this call, not a perfect script.
+
+COACHING PHILOSOPHY (background context, not a rigid checklist):
+${CHARLES_PLAYBOOK}
+${OBJECTION_GUIDE}
+
+CALL TRANSCRIPT:
+"""
+${transcript.trim()}
+"""
+
+Return ONLY a JSON object in exactly this shape (no markdown fences, no extra text). Address ${broker} by name in overallSummary and technique when a name was given.
+{
+  "brokerSpeaker": "<the label or name you identified as the broker, e.g. 'Speaker 1' or 'John'>",
+  "ownerSpeaker": "<the label or name for the owner/prospect>",
+  "callSnapshot": "<one sentence: who was called, about what property, and what happened>",
+  "outcome": "<short label for where the call ended, e.g. 'BOV agreed', 'Follow-up scheduled', 'Info gathered, no next step', 'Owner declined', 'Voicemail left'>",
+  "outcomeQuality": "<'strong', 'partial', or 'missed'>",
+  "overallScore": <number 1-10>,
+  "grade": "<A, B, C, D, or F — single letter, consistent with overallScore>",
+  "overallSummary": "<2-4 sentences, specific to this call>",
+  "scorecard": [
+    { "category": "Opening & Credibility", "score": <1-5>, "note": "<one sentence>" },
+    { "category": "Discovery & Questions", "score": <1-5>, "note": "<one sentence>" },
+    { "category": "Listening & Rapport", "score": <1-5>, "note": "<one sentence>" },
+    { "category": "Objection Handling", "score": <1-5 or null if no objection or resistance came up>, "note": "<one sentence>" },
+    { "category": "Advancing to BOV / Next Step", "score": <1-5>, "note": "<one sentence>" }
+  ],
+  "strengths": [
+    { "point": "<what they did well>", "quote": "<short verbatim line from the broker that shows it, or empty string>" }
+  ],
+  "improvements": [
+    { "point": "<what to improve and why>", "quote": "<short verbatim line from the call where it happened, or empty string>", "tryInstead": "<the actual words they could say instead>" }
+  ],
+  "objections": [
+    { "objection": "<the owner's objection in a few words>", "handled": "<how the broker responded>", "rating": "<'well', 'partly', or 'missed'>", "suggestion": "<a better response, in words they could use>" }
+  ],
+  "missedOpportunities": ["<something the owner said that the broker could have dug into, and the question to ask>"],
+  "ownerIntel": ["<useful fact learned about the owner or property: hold period, loan, lease term, other properties, motivations, timing>"],
+  "nextSteps": ["<concrete follow-up action with THIS owner, e.g. 'Send BOV by Friday', 'Call back in 6 months re: loan maturity'>"],
+  "technique": "<one concrete thing to practice on the next call, with the actual words>"
+}
+
+Give 2-4 strengths and 2-4 improvements. Objections, missedOpportunities, ownerIntel, and nextSteps may be empty arrays if not applicable. Keep quotes short (under 25 words) and verbatim from the transcript.`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: reviewPrompt }]
+    });
+    const text = response.content.map(b => b.text || '').join('');
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('The review came back in an unexpected format. Please try again.');
+    res.json(JSON.parse(jsonMatch[0]));
+  } catch (error) {
+    console.error('Review API error:', error);
+    sendApiError(res, error, 'Call review failed');
+  }
+});
+
+app.get('/review', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'review.html'));
 });
 
 app.get('/', (req, res) => {
