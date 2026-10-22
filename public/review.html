@@ -153,14 +153,6 @@
     .result-header h2 { font-size: 20px; font-weight: 600; }
     .snapshot { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
 
-    .grade-badge {
-      width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 24px; font-weight: 800; flex-shrink: 0;
-    }
-    .grade-A { background: rgba(45,206,137,0.15); color: var(--accent-success); border: 2px solid var(--accent-success); }
-    .grade-B { background: rgba(79,110,247,0.15); color: var(--accent); border: 2px solid var(--accent); }
-    .grade-C { background: rgba(255,180,0,0.15); color: var(--accent-warn); border: 2px solid var(--accent-warn); }
-    .grade-D, .grade-F { background: rgba(232,69,96,0.15); color: var(--accent-danger); border: 2px solid var(--accent-danger); }
 
     .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
     .chip {
@@ -281,6 +273,7 @@
 
     @media print {
       body { background: #fff; color: #111; padding: 0; }
+      body, body * { font-family: Arial, Helvetica, sans-serif !important; }
       .app-header, .tabs, .actions, .toast { display: none !important; }
       .card { border: none; padding: 0; background: #fff; }
       .small-btn { display: none !important; }
@@ -337,41 +330,6 @@
         <div class="form-group">
           <label for="brokerName">Your name</label>
           <input type="text" id="brokerName" placeholder="e.g. Jordan">
-        </div>
-        <div class="form-group">
-          <label for="callType">Call type</label>
-          <select id="callType">
-            <option value="">Not sure / let the coach decide</option>
-            <option value="First cold call">First cold call</option>
-            <option value="Follow-up call">Follow-up call</option>
-            <option value="BOV / pricing conversation">BOV / pricing conversation</option>
-            <option value="Voicemail">Voicemail</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="propertyType">Property type</label>
-          <select id="propertyType">
-            <option value="">Not sure / mixed</option>
-            <option>Retail</option>
-            <option>Auto (gas, car wash, lube)</option>
-            <option>QSR (quick service restaurant)</option>
-            <option>Industrial</option>
-            <option>Early childhood (daycare / preschool)</option>
-            <option>Medical office / outpatient</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="market">Market</label>
-          <select id="market">
-            <option value="">Not specified</option>
-            <option>Atlanta</option>
-            <option>Florida</option>
-            <option>South Carolina</option>
-            <option>North Carolina</option>
-            <option>Texas</option>
-            <option>Other</option>
-          </select>
         </div>
         <div class="form-group full">
           <label for="notes">Anything the coach should know? <em>e.g. "Owner hung up early" or "I want feedback on my BOV ask"</em></label>
@@ -577,9 +535,6 @@
       lastMeta = {
         transcript: $('transcript').value,
         brokerName,
-        callType: $('callType').value,
-        propertyType: $('propertyType').value,
-        market: $('market').value,
         notes: $('notes').value.trim()
       };
 
@@ -596,7 +551,7 @@
           body: JSON.stringify(lastMeta)
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.grade) throw new Error(data.error || 'The review could not be generated. Please try again.');
+        if (!res.ok || !data.overallSummary) throw new Error(data.error || 'The review could not be generated. Please try again.');
         lastReview = data;
         renderResults(data);
         showScreen('results');
@@ -621,7 +576,6 @@
     }
 
     function renderResults(d) {
-      const grade = String(d.grade || '—').charAt(0).toUpperCase();
       const oq = ['strong', 'partial', 'missed'].includes(d.outcomeQuality) ? d.outcomeQuality : '';
       const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
 
@@ -663,10 +617,9 @@
       $('results').innerHTML = `
         <div class="result-header">
           <div>
-            <h2>Call Review${lastMeta.brokerName ? ' · ' + escapeHtml(lastMeta.brokerName) : ''}</h2>
+            <h2>Your Call Review</h2>
             ${d.callSnapshot ? `<div class="snapshot">${escapeHtml(d.callSnapshot)}</div>` : ''}
           </div>
-          <div class="grade-badge grade-${grade}">${escapeHtml(grade)}</div>
         </div>
 
         <div class="chips">
@@ -782,8 +735,8 @@
     function reviewToText(d) {
       const L = [];
       const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
-      L.push(`CALL REVIEW${lastMeta.brokerName ? ' — ' + lastMeta.brokerName : ''}`);
-      L.push(`Grade: ${d.grade}  ·  Score: ${d.overallScore}/10  ·  Outcome: ${d.outcome || '—'}`);
+      L.push('YOUR CALL REVIEW');
+      L.push(`Score: ${d.overallScore}/10  ·  Outcome: ${d.outcome || '—'}`);
       if (d.callSnapshot) L.push(d.callSnapshot);
       L.push('', d.overallSummary || '');
       if (list(d.scorecard).length) {

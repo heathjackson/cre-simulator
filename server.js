@@ -392,7 +392,7 @@ app.post('/extract-transcript', (req, res) => {
 const MAX_TRANSCRIPT_CHARS = 150000;
 
 app.post('/review-call', async (req, res) => {
-  const { transcript, brokerName, propertyType, callType, market, notes } = req.body || {};
+  const { transcript, brokerName, notes } = req.body || {};
   if (!transcript || transcript.trim().length < 80) {
     return res.status(400).json({ error: 'The transcript is too short to review. Upload or paste the full call.' });
   }
@@ -403,9 +403,6 @@ app.post('/review-call', async (req, res) => {
   const broker = (brokerName || '').trim() || 'the broker';
   const context = [
     `- Broker: ${broker}`,
-    `- Property type: ${propertyType || 'not specified — infer from the call if you can'}`,
-    `- Call type: ${callType || 'not specified — infer from the call'}`,
-    `- Market: ${market || 'not specified'}`,
     notes ? `- Broker's notes about this call: ${String(notes).slice(0, 1500)}` : null
   ].filter(Boolean).join('\n');
 
@@ -433,7 +430,9 @@ CALL TRANSCRIPT:
 ${transcript.trim()}
 """
 
-Return ONLY a JSON object in exactly this shape (no markdown fences, no extra text). Address ${broker} by name in overallSummary and technique when a name was given.
+Return ONLY a JSON object in exactly this shape (no markdown fences, no extra text).
+
+VOICE: All coaching text (overallSummary, scorecard notes, strengths, improvements, objections, missedOpportunities, technique) is read by the broker, so speak directly to them in the second person: "you opened with...", "your discovery questions...". Never refer to the broker by name or as "the broker" in those fields. (The "rethink" section is the exception: it is a CRM record, so write it in neutral third person.) Work out the property type, market, and call type from the transcript yourself.
 {
   "brokerSpeaker": "<the label or name you identified as the broker, e.g. 'Speaker 1' or 'John'>",
   "ownerSpeaker": "<the label or name for the owner/prospect>",
@@ -441,7 +440,6 @@ Return ONLY a JSON object in exactly this shape (no markdown fences, no extra te
   "outcome": "<short label for where the call ended, e.g. 'BOV agreed', 'Follow-up scheduled', 'Info gathered, no next step', 'Owner declined', 'Voicemail left'>",
   "outcomeQuality": "<'strong', 'partial', or 'missed'>",
   "overallScore": <number 1-10>,
-  "grade": "<A, B, C, D, or F — single letter, consistent with overallScore>",
   "overallSummary": "<2-4 sentences, specific to this call>",
   "scorecard": [
     { "category": "Opening & Credibility", "score": <1-5>, "note": "<one sentence>" },
