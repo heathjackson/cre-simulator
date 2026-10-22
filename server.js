@@ -439,13 +439,12 @@ VOICE: All coaching text (overallSummary, scorecard notes, strengths, improvemen
   "callSnapshot": "<one sentence: who was called, about what property, and what happened>",
   "outcome": "<short label for where the call ended, e.g. 'BOV agreed', 'Follow-up scheduled', 'Info gathered, no next step', 'Owner declined', 'Voicemail left'>",
   "outcomeQuality": "<'strong', 'partial', or 'missed'>",
-  "overallScore": <number 1-10>,
   "overallSummary": "<2-4 sentences, specific to this call>",
   "scorecard": [
     { "category": "Opening & Credibility", "score": <1-5>, "note": "<one sentence>" },
     { "category": "Discovery & Questions", "score": <1-5>, "note": "<one sentence>" },
     { "category": "Listening & Rapport", "score": <1-5>, "note": "<one sentence>" },
-    { "category": "Objection Handling", "score": <1-5 or null if no objection or resistance came up>, "note": "<one sentence>" },
+    { "category": "Objection Handling", "score": <1-5>, "note": "<one sentence>" },
     { "category": "Advancing to BOV / Next Step", "score": <1-5>, "note": "<one sentence>" }
   ],
   "strengths": [
@@ -481,6 +480,8 @@ RETHINK SECTION RULES:
 - Today's date is ${today}. Assume the call happened today unless the transcript or notes say otherwise.
 - "property" lists ONLY facts actually stated on the call (or in the broker's notes). Never guess or fill in blanks. Use only the labels that apply. Use an empty array if nothing about the property was learned.
 - "nextTask" is the single most important follow-up to log in Rethink. Base the due date on what the owner said (e.g. "call me after the holidays", "loan matures next spring"). If nothing specific was said, use normal cadence: 1-2 business days to send promised material, about 2 weeks after a warm conversation, about 3 months after a polite "not now", about 6 months after a firm "not interested". For a voicemail or gatekeeper, retry in 3-5 business days. Never pick a weekend.
+
+Score every scorecard category 1-5; never leave one blank. The five scores are added together for an overall score out of 25, so score each one honestly on its own. If no clear objection came up, score Objection Handling on how you handled any hesitation, brush-off, or short answers (for a voicemail, on how well the message gave a reason to call back).
 
 Give 2-4 strengths and 2-4 improvements. Objections, missedOpportunities, ownerIntel, and nextSteps may be empty arrays if not applicable. Keep quotes short (under 25 words) and verbatim from the transcript.`;
 

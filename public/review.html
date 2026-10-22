@@ -575,7 +575,14 @@
       return r >= 0.8 ? 'var(--accent-success)' : r >= 0.6 ? 'var(--accent)' : r >= 0.4 ? 'var(--accent-warn)' : 'var(--accent-danger)';
     }
 
+    // Overall score is the scorecard added up (5 categories x 5 points = 25)
+    function scoreTotal(d) {
+      const rows = Array.isArray(d.scorecard) ? d.scorecard.filter(s => s && typeof s.score === 'number') : [];
+      return { earned: rows.reduce((sum, s) => sum + s.score, 0), max: rows.length * 5 };
+    }
+
     function renderResults(d) {
+      const total = scoreTotal(d);
       const oq = ['strong', 'partial', 'missed'].includes(d.outcomeQuality) ? d.outcomeQuality : '';
       const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
 
@@ -630,8 +637,8 @@
 
         <div class="score-row">
           <span class="score-label">Overall</span>
-          ${bar(d.overallScore, 10)}
-          <span class="score-value">${escapeHtml(d.overallScore ?? '—')}/10</span>
+          ${bar(total.earned, total.max || 25)}
+          <span class="score-value">${total.earned}/${total.max || 25}</span>
         </div>
 
         <div class="summary-text">${escapeHtml(d.overallSummary)}</div>
@@ -736,7 +743,8 @@
       const L = [];
       const list = arr => Array.isArray(arr) ? arr.filter(Boolean) : [];
       L.push('YOUR CALL REVIEW');
-      L.push(`Score: ${d.overallScore}/10  ·  Outcome: ${d.outcome || '—'}`);
+      const total = scoreTotal(d);
+      L.push(`Score: ${total.earned}/${total.max || 25}  ·  Outcome: ${d.outcome || '—'}`);
       if (d.callSnapshot) L.push(d.callSnapshot);
       L.push('', d.overallSummary || '');
       if (list(d.scorecard).length) {
